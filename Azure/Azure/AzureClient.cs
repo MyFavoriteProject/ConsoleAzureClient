@@ -22,51 +22,28 @@ namespace Azure
 
             string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
             string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
-            string clientSecret = "Djn7Q~PUmHBCBxkRJbYiMeXNXGYtb_IBNk0sY";
+            //string clientSecret = "Djn7Q~PUmHBCBxkRJbYiMeXNXGYtb_IBNk0sY";
 
             string[] scopes = new[]
             {
                 "https://graph.microsoft.com/.default",
             };
 
-            //TokenCredentialOptions options = new TokenCredentialOptions
-            //{
-            //    AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
-            //};
-
-            //ClientSecretCredential clientSecretCredential = new ClientSecretCredential(
-            //    tenantId, clientId, clientSecret, options);
-
-            //_graphClient = new GraphServiceClient(clientSecretCredential, scopes);
-
-
-            //var options = new TokenCredentialOptions
-            //{
-            //    AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
-            //};
-
-            //Func<DeviceCodeInfo, CancellationToken, Task> callback = (code, cancellation) =>
-            //{
-            //    Console.WriteLine(code.Message);
-            //    return Task.FromResult(0);
-            //};
-
-            //var deviceCodeCredential = new DeviceCodeCredential(
-            //    callback, tenantId, clientId, options);
-
-            //_graphClient = new GraphServiceClient(deviceCodeCredential, scopes);
-
-            var options = new InteractiveBrowserCredentialOptions
+            var options = new TokenCredentialOptions
             {
-                TenantId = tenantId,
-                ClientId = clientId,
-                AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
-                RedirectUri = new Uri("http://localhost"),
+                AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
             };
 
-            var interactiveCredential = new InteractiveBrowserCredential(options);
+            Func<DeviceCodeInfo, CancellationToken, Task> callback = (code, cancellation) =>
+            {
+                Console.WriteLine(code.Message);
+                return Task.FromResult(0);
+            };
 
-            _graphClient = new GraphServiceClient(interactiveCredential, scopes);
+            var deviceCodeCredential = new DeviceCodeCredential(
+                callback, tenantId, clientId, options);
+
+            _graphClient = new GraphServiceClient(deviceCodeCredential, scopes);
         }
         
         public async Task<UserCredentials> CreateUser(string displayName, string mailNickname, string userPrincipalName)
