@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Azure.Identity;
 using Azure.Models;
@@ -19,31 +15,8 @@ namespace Azure
         public AzureClient()
         {
             _passwordGenerator = new PasswordGenerator();
-
-            string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
-            string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
-            //string clientSecret = "Djn7Q~PUmHBCBxkRJbYiMeXNXGYtb_IBNk0sY";
-
-            string[] scopes = new[]
-            {
-                "https://graph.microsoft.com/.default",
-            };
-
-            var options = new TokenCredentialOptions
-            {
-                AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
-            };
-
-            Func<DeviceCodeInfo, CancellationToken, Task> callback = (code, cancellation) =>
-            {
-                Console.WriteLine(code.Message);
-                return Task.FromResult(0);
-            };
-
-            var deviceCodeCredential = new DeviceCodeCredential(
-                callback, tenantId, clientId, options);
-
-            _graphClient = new GraphServiceClient(deviceCodeCredential, scopes);
+            
+            _graphClient = GetGraphServiceClient();
         }
         
         public async Task<UserCredentials> CreateUser(string displayName, string mailNickname, string userPrincipalName)
@@ -67,6 +40,7 @@ namespace Azure
             UserCredentials result = new UserCredentials
             {
                 Id = user.Id,
+                UserPrincipalName = user.UserPrincipalName,
                 Password = password,
             };
 
@@ -117,8 +91,7 @@ namespace Azure
         public async Task<UserSharePoint> GetUserSharePoint(string userId)
         {
             User user = await _graphClient.Users[userId].Request()
-                .Select(
-                    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills")
+                .Select("aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills")
                 .GetAsync();
 
             UserSharePoint userSharePoint = new UserSharePoint()
@@ -157,7 +130,7 @@ namespace Azure
             return user.Id;
         }
 
-        public async Task<string> GreateGroup(string displayName, string mailNickname, bool mailEnabled, bool securityEnabled)
+        public async Task<string> CreateGroup(string displayName, string mailNickname, bool mailEnabled, bool securityEnabled)
         {
             Group newGroup = new Group
             {
@@ -189,6 +162,29 @@ namespace Azure
             };
 
             await _graphClient.Groups[groupId].Members[userId].Request().DeleteAsync();
+        }
+
+        private GraphServiceClient GetGraphServiceClient()
+        {
+            string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
+            string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
+            string clientSecret = "Djn7Q~PUmHBCBxkRJbYiMeXNXGYtb_IBNk0sY";
+
+
+            string[] scopes = new[]
+            {
+                "https://graph.microsoft.com/.default",
+            };
+
+            TokenCredentialOptions options = new TokenCredentialOptions
+            {
+                AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
+            };
+
+            ClientSecretCredential clientSecretCredential = new ClientSecretCredential(
+                tenantId, clientId, clientSecret, options);
+
+            return new GraphServiceClient(clientSecretCredential, scopes);
         }
     }
 }
