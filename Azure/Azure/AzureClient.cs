@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Azure.Identity;
 using Azure.Models;
 using Microsoft.Graph;
-using Microsoft.Identity.Client;
 
 namespace Azure
 {
@@ -15,10 +14,10 @@ namespace Azure
         public AzureClient()
         {
             _passwordGenerator = new PasswordGenerator();
-            
+
             _graphClient = GetGraphServiceClient();
         }
-        
+
         public async Task<UserCredentials> CreateUser(string displayName, string mailNickname, string userPrincipalName)
         {
             string password = _passwordGenerator.GetPassword();
@@ -56,15 +55,15 @@ namespace Azure
             {
                 userType.GetProperty(propValue.Key)?.SetValue(user, propValue.Value);
             }
-
+            
             await _graphClient.Users[userId].Request().UpdateAsync(user);
         }
-
+        
         public async Task<string> ResetUserPassword(string userId)
         {
             string password = _passwordGenerator.GetPassword();
 
-            User user = new User()
+            User user = new User
             {
                 PasswordProfile = new PasswordProfile()
                 {
@@ -77,7 +76,7 @@ namespace Azure
 
             return password;
         }
-
+        
         public async Task SetAccountEnabled(string userId, bool accountEnabled)
         {
             User user = new User
@@ -88,10 +87,11 @@ namespace Azure
             await _graphClient.Users[userId].Request().UpdateAsync(user);
         }
 
-        public async Task<UserSharePoint> GetUserSharePoint(string userId)
+        public async Task<UserSharePoint> GetUserAdditionalInfo(string userId)
         {
             User user = await _graphClient.Users[userId].Request()
-                .Select("aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills")
+                .Select(
+                    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills")
                 .GetAsync();
 
             UserSharePoint userSharePoint = new UserSharePoint()
@@ -107,7 +107,7 @@ namespace Azure
                 Schools = user.Schools,
                 Skills = user.Skills
             };
-            
+
             return userSharePoint;
         }
 
@@ -120,17 +120,16 @@ namespace Azure
 
         public async Task DeleteUser(string userId)
         {
-             await _graphClient.Users[userId].Request().DeleteAsync();
+            await _graphClient.Users[userId].Request().DeleteAsync();
         }
 
-        public async Task<string> RestoreUser(string userId)
+        public async Task RestoreUser(string userId)
         {
-            DirectoryObject user = await _graphClient.Directory.DeletedItems[userId].Restore().Request().PostAsync();
-
-            return user.Id;
+            await _graphClient.Directory.DeletedItems[userId].Restore().Request().PostAsync();
         }
 
-        public async Task<string> CreateGroup(string displayName, string mailNickname, bool mailEnabled, bool securityEnabled)
+        public async Task<string> CreateGroup(string displayName, string mailNickname, bool mailEnabled,
+            bool securityEnabled)
         {
             Group newGroup = new Group
             {
@@ -168,7 +167,7 @@ namespace Azure
         {
             string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
             string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
-            string clientSecret = "Djn7Q~PUmHBCBxkRJbYiMeXNXGYtb_IBNk0sY";
+            string clientSecret = "f2i7Q~JLJlWDGmfUcEnjpEbGlg3~OaTSEvkBa";
 
 
             string[] scopes = new[]

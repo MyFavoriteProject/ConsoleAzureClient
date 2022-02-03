@@ -11,12 +11,17 @@ namespace Azure
         static void Main(string[] args)
         {
             UserCredentials userCredentials = CreateUser().GetAwaiter().GetResult();
-            UpdateUser(userCredentials.Id).GetAwaiter().GetResult();
+
+            string userId = userCredentials.Id;
+
+            UpdateAdditionalInfoUser("56f5423e-3eee-4dbf-a286-baf96e795e8a").GetAwaiter().GetResult();
+            UpdateUser(userId).GetAwaiter().GetResult();
+
             try
             {
-                _azureClient.SetAccountEnabled(userCredentials.Id, false).GetAwaiter().GetResult();
-                UserSharePoint userSharePoint = _azureClient.GetUserSharePoint(userCredentials.Id).GetAwaiter().GetResult();
-                string userPasswordPolicies = _azureClient.GetUserPasswordPolicies(userCredentials.Id).GetAwaiter().GetResult();
+                _azureClient.SetAccountEnabled(userId, false).GetAwaiter().GetResult();
+                UserSharePoint userSharePoint = GetUserAdditionalInfo(userId).GetAwaiter().GetResult();
+                string userPasswordPolicies = _azureClient.GetUserPasswordPolicies(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -25,14 +30,15 @@ namespace Azure
 
             try
             {
-                _azureClient.DeleteUser(userCredentials.Id).GetAwaiter().GetResult();
-                _azureClient.RestoreUser(userCredentials.Id).GetAwaiter().GetResult();
+                _azureClient.DeleteUser(userId).GetAwaiter().GetResult();
+                _azureClient.RestoreUser(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
-            //ResetPassword();
+
+            ResetPassword(userId);
         }
 
         public static async Task<UserCredentials> CreateUser()
@@ -65,7 +71,8 @@ namespace Azure
 
             Dictionary<string, object> propertyValueDictionary = new Dictionary<string, object>
             {
-                {"BusinessPhones", new List<string>{ "7201010" }},
+                {"BusinessPhones", new List<string>{ "937-99-92" }},
+                {"GivenName", "Some One"},
             };
             try
             {
@@ -80,13 +87,38 @@ namespace Azure
             Console.WriteLine();
         }
 
-        static async Task GetUserSharePoint(string userId)
+        public static async Task UpdateAdditionalInfoUser(string userId)
         {
             Console.WriteLine();
+
+            Dictionary<string, object> propertyValueDictionary = new Dictionary<string, object>
+            {
+                {"AboutMe", "Im Dev"},
+                {"Skills", new List<string>{"C#", ".Net", "Drink coffee"}},
+                {"Birthday", DateTimeOffset.Now.AddYears(-20)}
+            };
+
             try
             {
-                UserSharePoint userSharePoint = await _azureClient.GetUserSharePoint(userId);
-                Console.WriteLine("GetUserSharePoint was success");
+                await _azureClient.UpdateUser(userId, propertyValueDictionary);
+                Console.WriteLine("UpdateAdditionalInfoUser was success");
+            }
+            catch (Exception e) /// 404 Not found Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
+            {
+                Console.WriteLine(e);
+            }
+
+            Console.WriteLine();
+        }
+        
+        static async Task<UserSharePoint> GetUserAdditionalInfo(string userId)
+        {
+            Console.WriteLine();
+            UserSharePoint userSharePoint = default;
+            try
+            {
+                userSharePoint = await _azureClient.GetUserAdditionalInfo(userId);
+                Console.WriteLine("GetUserAdditionalInfo was success");
                 Console.WriteLine(@$"AboutMe - {userSharePoint.AboutMe}");
                 Console.WriteLine($"Birthday - {userSharePoint.Birthday}");
             }
@@ -95,19 +127,23 @@ namespace Azure
                 Console.WriteLine(e);
             }
             Console.WriteLine();
+
+            return userSharePoint;
         }
-
-
-        public static void ResetPassword()
+        
+        public static void ResetPassword(string userId)
         {
+            Console.WriteLine();
             try
             {
-                _azureClient.ResetUserPassword("055c4599-9a4a-4678-b64f-0d5d9841d8a2").GetAwaiter().GetResult();
+                string newPassword = _azureClient.ResetUserPassword(userId).GetAwaiter().GetResult();
+                Console.WriteLine($"New user password: {newPassword}");
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
+            Console.WriteLine();
         }
     }
 }
