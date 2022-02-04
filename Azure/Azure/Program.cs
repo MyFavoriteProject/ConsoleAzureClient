@@ -12,7 +12,7 @@ namespace Azure
 
         static void Main(string[] args)
         {
-            Dictionary<string, string> _idHashDictionary = new Dictionary<string, string>();
+            Dictionary<string, string> idHashDictionary = new Dictionary<string, string>();
 
             UserCredentials userCredentials = CreateUser().GetAwaiter().GetResult();
 
@@ -58,7 +58,7 @@ namespace Azure
             try
             {
                 string photoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
-                _idHashDictionary.Add(userId, photoHash);
+                idHashDictionary.Add(userId, photoHash);
             }
             catch (Exception e)
             {
@@ -71,7 +71,7 @@ namespace Azure
             {
                 string newPhotoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
 
-                if (_idHashDictionary.TryGetValue(userId, out string oldPhotoHash))
+                if (idHashDictionary.TryGetValue(userId, out string oldPhotoHash))
                 {
                     if (!newPhotoHash.Equals(oldPhotoHash))
                     {

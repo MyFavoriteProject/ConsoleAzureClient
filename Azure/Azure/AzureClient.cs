@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Azure.Identity;
@@ -166,6 +164,31 @@ namespace Azure
             await _graphClient.Groups[groupId].Members[userId].Reference.Request().DeleteAsync();
         }
 
+        public async Task<string> GetPhotoHash(string userId)
+        {
+            var photoInfo = await _graphClient.Users[userId].Photo.Request().GetAsync();
+
+            JsonElement? value = photoInfo.AdditionalData["@odata.mediaEtag"] as JsonElement?;
+
+            return value?.ToString();
+        }
+
+        public async Task<byte[]> GetUserPhoto(string userId)
+        {
+            var stream = await _graphClient.Users[userId].Photo.Content.Request().GetAsync();
+
+            await using MemoryStream ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+
+        public async Task UpdateUserPhoto(string userId, byte[] imageBytes)
+        {
+            await using var stream = new MemoryStream(imageBytes);
+
+            await _graphClient.Users[userId].Photo.Content.Request().PutAsync(stream);
+        }
+
         private GraphServiceClient GetGraphServiceClient()
         {
             const string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
@@ -183,31 +206,6 @@ namespace Azure
                 tenantId, clientId, clientSecret, options);
 
             return new GraphServiceClient(clientSecretCredential, scopes);
-        }
-
-        public async Task<string> GetPhotoHash(string userId)
-        {
-            var photoInfo = await _graphClient.Users[userId].Photo.Request().GetAsync();
-
-            JsonElement? value = photoInfo.AdditionalData["@odata.mediaEtag"] as JsonElement?;
-
-            return value.ToString();
-        }
-
-        public async Task<byte[]> GetUserPhoto(string userId)
-        {
-            var stream = await _graphClient.Users[userId].Photo.Content.Request().GetAsync();
-
-            await using MemoryStream ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            return ms.ToArray();
-        }
-        
-        public async Task UpdateUserPhoto(string userId, byte[] imageBytes)
-        {
-            await using var stream = new System.IO.MemoryStream(imageBytes);
-
-            await _graphClient.Users[userId].Photo.Content.Request().PutAsync(stream);
         }
     }
 }
