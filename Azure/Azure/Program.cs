@@ -92,7 +92,7 @@ namespace Azure
 
             try
             {
-                UserSharePoint userSharePoint = GetUserAdditionalInfo(userId).GetAwaiter().GetResult();
+                UserAdditionalInfo userAdditionalInfo = GetUserAdditionalInfo(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -171,16 +171,16 @@ namespace Azure
             Console.WriteLine();
         }
         
-        static async Task<UserSharePoint> GetUserAdditionalInfo(string userId)
+        static async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId)
         {
             Console.WriteLine();
-            UserSharePoint userSharePoint = default;
+            UserAdditionalInfo userAdditionalInfo = default;
             try
             {
-                userSharePoint = await _azureClient.GetUserAdditionalInfo(userId);
+                userAdditionalInfo = await _azureClient.GetUserAdditionalInfo(userId);
                 Console.WriteLine("GetUserAdditionalInfo was success");
-                Console.WriteLine(@$"AboutMe - {userSharePoint.AboutMe}");
-                Console.WriteLine($"Birthday - {userSharePoint.Birthday}");
+                Console.WriteLine(@$"AboutMe - {userAdditionalInfo.AboutMe}");
+                Console.WriteLine($"Birthday - {userAdditionalInfo.Birthday}");
             }
             catch (Exception e)
             {
@@ -188,7 +188,7 @@ namespace Azure
             }
             Console.WriteLine();
 
-            return userSharePoint;
+            return userAdditionalInfo;
         }
         
         public static void ResetPassword(string userId)

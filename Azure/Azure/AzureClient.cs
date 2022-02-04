@@ -89,14 +89,14 @@ namespace Azure
             await _graphClient.Users[userId].Request().UpdateAsync(user);
         }
 
-        public async Task<UserSharePoint> GetUserAdditionalInfo(string userId)
+        public async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId)
         {
             User user = await _graphClient.Users[userId].Request()
                 .Select(
                     "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills")
                 .GetAsync();
 
-            UserSharePoint userSharePoint = new UserSharePoint()
+            UserAdditionalInfo userAdditionalInfo = new UserAdditionalInfo()
             {
                 AboutMe = user.AboutMe,
                 Birthday = user.Birthday,
@@ -110,7 +110,7 @@ namespace Azure
                 Skills = user.Skills
             };
 
-            return userSharePoint;
+            return userAdditionalInfo;
         }
 
         public async Task<string> GetUserPasswordPolicies(string userId)

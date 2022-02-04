@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Azure.Models
 {
-    public class UserSharePoint
+    public class UserAdditionalInfo
     {
         public string AboutMe { get; set; }
         public DateTimeOffset? Birthday { get; set; }
