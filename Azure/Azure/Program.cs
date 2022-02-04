@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Azure.Models;
 
@@ -8,20 +9,32 @@ namespace Azure
     class Program
     {
         private static readonly AzureClient _azureClient = new AzureClient();
+
         static void Main(string[] args)
         {
+            Dictionary<string, string> _idHashDictionary = new Dictionary<string, string>();
+
             UserCredentials userCredentials = CreateUser().GetAwaiter().GetResult();
 
-            string userId = userCredentials.Id;
-
-            UpdateAdditionalInfoUser("56f5423e-3eee-4dbf-a286-baf96e795e8a").GetAwaiter().GetResult();
+            string userId = userCredentials?.Id ?? "8a7cca23-9049-495e-b1d3-e6b28877ece8";
+            
             UpdateUser(userId).GetAwaiter().GetResult();
 
             try
             {
                 _azureClient.SetAccountEnabled(userId, false).GetAwaiter().GetResult();
-                UserSharePoint userSharePoint = GetUserAdditionalInfo(userId).GetAwaiter().GetResult();
                 string userPasswordPolicies = _azureClient.GetUserPasswordPolicies(userId).GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            try
+            {
+                string groupId = _azureClient.CreateGroup("Library Assist", "library", true, false).GetAwaiter().GetResult();
+                _azureClient.AddMemberInGroup(groupId, userId).GetAwaiter().GetResult();
+                _azureClient.RemoveMemberFromGroup(groupId, userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -39,6 +52,52 @@ namespace Azure
             }
 
             ResetPassword(userId);
+
+            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3615.JPG");
+
+            try
+            {
+                string photoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
+                _idHashDictionary.Add(userId, photoHash);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3614.JPG");
+
+            try
+            {
+                string newPhotoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
+
+                if (_idHashDictionary.TryGetValue(userId, out string oldPhotoHash))
+                {
+                    if (!newPhotoHash.Equals(oldPhotoHash))
+                    {
+
+                        byte[] imageBytes = _azureClient.GetUserPhoto(userId).GetAwaiter().GetResult();
+
+                        File.WriteAllBytes(@"C:\Users\d.bondarenko\Documents\GitHub\ConsoleAzureClient\Azure\Azure\Img\ImageFromAzureAD.JPG",
+                            imageBytes); // Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            UpdateAdditionalInfoUser(userId).GetAwaiter().GetResult();
+
+            try
+            {
+                UserSharePoint userSharePoint = GetUserAdditionalInfo(userId).GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
         public static async Task<UserCredentials> CreateUser()
@@ -73,6 +132,7 @@ namespace Azure
             {
                 {"BusinessPhones", new List<string>{ "937-99-92" }},
                 {"GivenName", "Some One"},
+                {"PasswordPolicies", "DisableStrongPassword"},
             };
             try
             {
@@ -138,6 +198,24 @@ namespace Azure
             {
                 string newPassword = _azureClient.ResetUserPassword(userId).GetAwaiter().GetResult();
                 Console.WriteLine($"New user password: {newPassword}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            Console.WriteLine();
+        }
+
+        public static void UpdateUserPhoto(string userId, string imgPath)
+        {
+            Console.WriteLine();
+            try
+            {
+                byte[] imageBytes = File.ReadAllBytes(imgPath);
+
+                _azureClient.UpdateUserPhoto(userId, imageBytes).GetAwaiter().GetResult();
+
+                Console.WriteLine("Updated User photo was success");
             }
             catch (Exception e)
             {

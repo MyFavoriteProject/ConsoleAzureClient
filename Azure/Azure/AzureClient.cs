@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Azure.Identity;
 using Azure.Models;
@@ -14,13 +18,13 @@ namespace Azure
         public AzureClient()
         {
             _passwordGenerator = new PasswordGenerator();
-
             _graphClient = GetGraphServiceClient();
         }
 
         public async Task<UserCredentials> CreateUser(string displayName, string mailNickname, string userPrincipalName)
         {
             string password = _passwordGenerator.GetPassword();
+
             User newUser = new User
             {
                 DisplayName = displayName,
@@ -46,14 +50,14 @@ namespace Azure
             return result;
         }
 
-        public async Task UpdateUser(string userId, Dictionary<string, object> propertyValueDictionary)
+        public async Task UpdateUser(string userId, Dictionary<string, object> propNameValueDictionary)
         {
             User user = new User();
             var userType = typeof(User);
 
-            foreach (var propValue in propertyValueDictionary)
+            foreach (var propNameValue in propNameValueDictionary) // Формирования объекта User по имени свойства и значения
             {
-                userType.GetProperty(propValue.Key)?.SetValue(user, propValue.Value);
+                userType.GetProperty(propNameValue.Key)?.SetValue(user, propNameValue.Value);
             }
             
             await _graphClient.Users[userId].Request().UpdateAsync(user);
@@ -65,7 +69,7 @@ namespace Azure
 
             User user = new User
             {
-                PasswordProfile = new PasswordProfile()
+                PasswordProfile = new PasswordProfile
                 {
                     Password = password,
                     ForceChangePasswordNextSignIn = true
@@ -137,6 +141,10 @@ namespace Azure
                 MailNickname = mailNickname,
                 MailEnabled = mailEnabled,
                 SecurityEnabled = securityEnabled,
+                GroupTypes = new List<string>
+                {
+                    "Unified"
+                },
             };
 
             Group group = await _graphClient.Groups.Request().AddAsync(newGroup);
@@ -155,25 +163,16 @@ namespace Azure
 
         public async Task RemoveMemberFromGroup(string groupId, string userId)
         {
-            DirectoryObject directoryObject = new DirectoryObject
-            {
-                Id = userId
-            };
-
-            await _graphClient.Groups[groupId].Members[userId].Request().DeleteAsync();
+            await _graphClient.Groups[groupId].Members[userId].Reference.Request().DeleteAsync();
         }
 
         private GraphServiceClient GetGraphServiceClient()
         {
-            string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
-            string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
-            string clientSecret = "f2i7Q~JLJlWDGmfUcEnjpEbGlg3~OaTSEvkBa";
-
-
-            string[] scopes = new[]
-            {
-                "https://graph.microsoft.com/.default",
-            };
+            const string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
+            const string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
+            const string clientSecret = "f2i7Q~JLJlWDGmfUcEnjpEbGlg3~OaTSEvkBa";
+            
+            string[] scopes = { "https://graph.microsoft.com/.default" };
 
             TokenCredentialOptions options = new TokenCredentialOptions
             {
@@ -184,6 +183,31 @@ namespace Azure
                 tenantId, clientId, clientSecret, options);
 
             return new GraphServiceClient(clientSecretCredential, scopes);
+        }
+
+        public async Task<string> GetPhotoHash(string userId)
+        {
+            var photoInfo = await _graphClient.Users[userId].Photo.Request().GetAsync();
+
+            JsonElement? value = photoInfo.AdditionalData["@odata.mediaEtag"] as JsonElement?;
+
+            return value.ToString();
+        }
+
+        public async Task<byte[]> GetUserPhoto(string userId)
+        {
+            var stream = await _graphClient.Users[userId].Photo.Content.Request().GetAsync();
+
+            await using MemoryStream ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+        
+        public async Task UpdateUserPhoto(string userId, byte[] imageBytes)
+        {
+            await using var stream = new System.IO.MemoryStream(imageBytes);
+
+            await _graphClient.Users[userId].Photo.Content.Request().PutAsync(stream);
         }
     }
 }
