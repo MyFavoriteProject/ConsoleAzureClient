@@ -22,7 +22,7 @@ namespace Azure
             try
             {
                 _azureClient.SetAccountEnabledAsync(userId, false).GetAwaiter().GetResult();
-                string userPasswordPolicies = _azureClient.GetUserPasswordPolicies(userId).GetAwaiter().GetResult();
+                string userPasswordPolicies = _azureClient.GetUserPasswordPoliciesAsync(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -219,7 +219,7 @@ namespace Azure
             Console.WriteLine();
             try
             {
-                string newPassword = _azureClient.ResetUserPassword(userId).GetAwaiter().GetResult();
+                string newPassword = _azureClient.ResetUserPasswordAsync(userId).GetAwaiter().GetResult();
                 Console.WriteLine($"New user password: {newPassword}");
             }
             catch (Exception e)

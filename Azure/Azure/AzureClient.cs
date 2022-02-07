@@ -72,7 +72,7 @@ namespace Azure
                 .UpdateAsync(user);
         }
         
-        public async Task<string> ResetUserPassword(string userId)
+        public async Task<string> ResetUserPasswordAsync(string userId)
         {
             /// Генерация пароля от 8 до 16 символов 
             string password = _passwordGenerator.GetPassword(); 
@@ -129,7 +129,7 @@ namespace Azure
             return userAdditionalInfo;
         }
 
-        public async Task<string> GetUserPasswordPolicies(string userId)
+        public async Task<string> GetUserPasswordPoliciesAsync(string userId)
         {
             User user = await _graphClient.Users[userId]
                 .Request()
