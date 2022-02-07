@@ -160,9 +160,7 @@ namespace Azure
             {
                 Id = userId
             };
-
-            //DirectoryObject user = await _graphClient.Users[userId].Request().GetAsync();
-
+            
             await _graphClient.Groups[groupId].Members.References.Request().AddAsync(user);
         }
 

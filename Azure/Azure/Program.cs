@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Azure.Models;
 
@@ -53,9 +52,9 @@ namespace Azure
 
             ResetPassword(userId);
 
-            Dictionary<string, string> idByHashDictionary = new Dictionary<string, string>(); /// Запись по id значений хеша картинок 
+            Task.Delay(120000).GetAwaiter().GetResult(); /// Ожидает 2 минуты(120000 мс) для обновление фото 
 
-            Task.Delay(2000).GetAwaiter().GetResult();
+            Dictionary<string, string> idByHashDictionary = new Dictionary<string, string>(); /// Запись по id значений хеша картинок 
 
             UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3615.JPG"); /// Путь указан статической картинки для обновления у пользователя
 
