@@ -6,9 +6,12 @@ namespace Azure
     public class PasswordGenerator
     {
         private readonly Random _random;
-        private const int PasswordLength = 10; /// произвольная длинна пароля 
-        private const string ValidChars = "QWERTYUIOPASDFGHJKLZXCVBNM" + "qwertyuiopasdfghjklzxcvbnm" + "0123456789" +
-                                          "!@#$%^&*()-_=+<,>."; /// Валидные символы для пароля
+
+        /// произвольная длинна пароля 
+        private const int PasswordLength = 10;
+        /// Валидные символы для пароля
+        private const string ValidChars = "QWERTYUIOPASDFGHJKLZXCVBNM" + "qwertyuiopasdfghjklzxcvbnm" + 
+                                          "0123456789" + "!@#$%^&*()-_=+<,>."; 
 
         public PasswordGenerator()
         {
@@ -21,8 +24,11 @@ namespace Azure
 
             for (int i = 0; i < PasswordLength; i++)
             {
+                /// Генерирует индекс валидного символа
                 int charIndex = _random.Next(0, ValidChars.Length - 1);
-                stringBuilder.Append(ValidChars[charIndex]);
+
+                /// Получает символ по индексу 
+                stringBuilder.Append(ValidChars[charIndex]); 
             }
 
             return stringBuilder.ToString();

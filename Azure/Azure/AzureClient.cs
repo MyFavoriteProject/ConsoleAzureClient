@@ -24,6 +24,7 @@ namespace Azure
         {
             string password = _passwordGenerator.GetPassword();
 
+            /// Формирования объекта для создание пользователя
             User newUser = new User
             {
                 DisplayName = displayName,
@@ -35,18 +36,19 @@ namespace Azure
                     Password = password,
                     ForceChangePasswordNextSignIn = true
                 }
-            }; /// Формирования объекта для создание пользователя
+            }; 
 
             User user = await _graphClient.Users
                 .Request()
                 .AddAsync(newUser);
 
+            /// Формирования объекта для обращения к созданому пользователю
             UserCredentials result = new UserCredentials
             {
                 Id = user.Id,
                 UserPrincipalName = user.UserPrincipalName,
                 Password = password,
-            }; /// Формирования объекта для обращения к созданому пользователю
+            }; 
 
             return result;
         }
@@ -54,9 +56,12 @@ namespace Azure
         public async Task UpdateUser(string userId, Dictionary<string, object> propNameByValueDictionary)
         {
             User user = new User();
-            Type userType = typeof(User); /// Получение информации о типе для сетинга свойств 
-            
-            foreach (KeyValuePair<string, object> propNameValue in propNameByValueDictionary) /// Формирования объекта User по имени свойства и значения в словаре
+
+            /// Получение информации о типе для сетинга свойств 
+            Type userType = typeof(User);
+
+            /// Формирования объекта User по имени свойства и значения в словаре
+            foreach (KeyValuePair<string, object> propNameValue in propNameByValueDictionary) 
             {
                 userType.GetProperty(propNameValue.Key)
                     ?.SetValue(user, propNameValue.Value);
@@ -69,7 +74,8 @@ namespace Azure
         
         public async Task<string> ResetUserPassword(string userId)
         {
-            string password = _passwordGenerator.GetPassword(); /// Генерация пароля от 8 до 16 символов 
+            /// Генерация пароля от 8 до 16 символов 
+            string password = _passwordGenerator.GetPassword(); 
 
             User user = new User
             {
@@ -96,7 +102,8 @@ namespace Azure
                 .UpdateAsync(user);
         }
 
-        public async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId) /// Получает SharePoint Online свойства 
+        /// Получает SharePoint Online свойства 
+        public async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId) 
         {
             User user = await _graphClient.Users[userId].Request()
                 .Select(
@@ -187,11 +194,13 @@ namespace Azure
 
         public async Task<string> GetPhotoHash(string userId)
         {
+            /// Получение информации о фото
             ProfilePhoto profilePhoto = await _graphClient.Users[userId].Photo
                 .Request()
-                .GetAsync(); /// Получение информации о фото
+                .GetAsync(); 
 
-            JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?; /// По @odata.mediaEtag получаем хеш тип которого JsonElement
+            /// По @odata.mediaEtag получаем хеш тип которого JsonElement
+            JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?; 
 
             return value?.ToString();
         }
@@ -202,14 +211,16 @@ namespace Azure
                 .Request()
                 .GetAsync();
 
+            /// MemoryStream было использовано для получения byte[]
             await using MemoryStream memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
-            return memoryStream.ToArray(); /// MemoryStream было использовано для получения byte[]
+            return memoryStream.ToArray(); 
         }
 
         public async Task UpdateUserPhoto(string userId, byte[] imageBytes)
         {
-            await using MemoryStream stream = new MemoryStream(imageBytes); /// Приведение массива байтов к Stream
+            /// Приведение массива байтов к Stream
+            await using MemoryStream stream = new MemoryStream(imageBytes); 
 
             await _graphClient.Users[userId].Photo.Content
                 .Request()
@@ -221,7 +232,8 @@ namespace Azure
             const string tenantId = "5c66821f-81e8-4faa-a800-b3fa3f2e27c0";
             const string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
             const string clientSecret = "f2i7Q~JLJlWDGmfUcEnjpEbGlg3~OaTSEvkBa";
-            
+
+            /// /.default подтягивает perissions приложения
             string[] scopes = { "https://graph.microsoft.com/.default" };
 
             TokenCredentialOptions options = new TokenCredentialOptions

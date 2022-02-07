@@ -14,7 +14,8 @@ namespace Azure
         {
             UserCredentials userCredentials = CreateUser().GetAwaiter().GetResult();
 
-            string userId = userCredentials.Id; /// Если необходимо обратится к созданому пользователю
+            /// Если необходимо обратится к созданому пользователю
+            string userId = userCredentials.Id; 
 
             UpdateUser(userId).GetAwaiter().GetResult();
 
@@ -30,6 +31,7 @@ namespace Azure
 
             try
             {
+                /// Входными параметрами передаются значения для создания группы 
                 string groupId = _azureClient.CreateGroup("Library Assist", "library", true, false).GetAwaiter().GetResult();
                 _azureClient.AddMemberInGroup(groupId, userId).GetAwaiter().GetResult();
                 _azureClient.RemoveMemberFromGroup(groupId, userId).GetAwaiter().GetResult();
@@ -51,11 +53,14 @@ namespace Azure
 
             ResetPassword(userId);
 
-            Task.Delay(120000).GetAwaiter().GetResult(); /// Ожидает 2 минуты(120000 мс) для обновление фото 
+            /// Ожидает 2 минуты(120000 мс) для обновление фото 
+            Task.Delay(120000).GetAwaiter().GetResult(); 
 
-            Dictionary<string, string> idByHashDictionary = new Dictionary<string, string>(); /// Запись по id значений хеша картинок 
+            /// Запись по id значений хеша картинок для сравнения сторого и нового хеша
+            Dictionary<string, string> idByHashDictionary = new Dictionary<string, string>(); 
 
-            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3615.JPG"); /// Путь указан статической картинки для обновления у пользователя
+            /// Путь указан статической картинки для обновления у пользователя
+            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3615.JPG"); 
 
             string photoHash = string.Empty;
 
@@ -70,20 +75,24 @@ namespace Azure
 
             idByHashDictionary.Add(userId, photoHash);
 
-            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3614.JPG"); /// Путь указан статической картинки для обновления у пользователя
+            /// Путь указан статической картинки для обновления у пользователя
+            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3614.JPG"); 
 
             try
             {
                 string newPhotoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
 
-                if (idByHashDictionary.TryGetValue(userId, out string oldPhotoHash)) /// Получает значения хеша которое было записано ранее 
+                /// Получает значения хеша которое было записано ранее 
+                if (idByHashDictionary.TryGetValue(userId, out string oldPhotoHash)) 
                 {
-                    if (!newPhotoHash.Equals(oldPhotoHash)) /// Если хеши не соответсвуют, идёт получение byte[] нового изображения и запись в файл
+                    /// Если хеши разные, идёт получение byte[] нового изображения и запись в файл
+                    if (!newPhotoHash.Equals(oldPhotoHash)) 
                     {
                         byte[] imageBytes = _azureClient.GetUserPhoto(userId).GetAwaiter().GetResult();
 
+                        /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
                         File.WriteAllBytes(@"C:\Users\d.bondarenko\Documents\GitHub\ConsoleAzureClient\Azure\Azure\Img\ImageFromAzureAD.JPG",
-                            imageBytes); /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
+                            imageBytes); 
                     }
                 }
             }
@@ -92,8 +101,9 @@ namespace Azure
                 Console.WriteLine(e);
             }
 
-            UpdateAdditionalInfoUser(userId).GetAwaiter().GetResult(); /// Обновление атрибутов SPO у пользователя лучше проводить спустя несколько минут после создания
-                                                                       /// Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
+            /// Обновление атрибутов SPO у пользователя лучше проводить спустя несколько минут после создания
+            /// Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
+            UpdateAdditionalInfoUser(userId).GetAwaiter().GetResult(); 
 
             try
             {
@@ -113,7 +123,10 @@ namespace Azure
 
             try
             {
-                userCredentials = await _azureClient.CreateUser("First user", "FirstUser", "FirstUser@dimabondarenko888gmail.onmicrosoft.com");
+                /// Входными параметрами передаются значения для создания юзера
+                userCredentials = await _azureClient.CreateUser("First user", 
+                    "FirstUser", 
+                    "FirstUser@dimabondarenko888gmail.onmicrosoft.com");
                 
                 Console.WriteLine("Created user:"); 
                 Console.WriteLine($"User Id - {userCredentials.Id}");
@@ -129,16 +142,19 @@ namespace Azure
             return userCredentials;
         }
 
-        static async Task UpdateUser(string userId) /// Обновление только Azure AD свойств 
+        /// Обновление только Azure AD свойств 
+        static async Task UpdateUser(string userId) 
         {
             Console.WriteLine();
 
+            /// Формирования словаря по имени свойства и значения этого свойства 
             Dictionary<string, object> propNameByValueDictionary = new Dictionary<string, object>
             {
                 { "BusinessPhones", new List<string>{ "937-99-92" }},
                 { "GivenName", "Some One" },
                 { "PasswordPolicies", "DisableStrongPassword" },
-            }; /// Формирования словаря по имени свойства и значения этого свойства 
+            };
+
             try
             {
                 await _azureClient.UpdateUser(userId, propNameByValueDictionary);
@@ -152,16 +168,18 @@ namespace Azure
             Console.WriteLine();
         }
 
-        static async Task UpdateAdditionalInfoUser(string userId) /// Обновление только SharePoint Online свойств 
+        /// Обновление только SharePoint Online свойств 
+        static async Task UpdateAdditionalInfoUser(string userId) 
         {
             Console.WriteLine();
 
+            /// Формирования словаря по имени свойства и значения этого свойства 
             Dictionary<string, object> propNameByValueDictionary = new Dictionary<string, object>
             {
                 { "AboutMe", "Im Dev" },
                 { "Skills", new List<string>{"C#", ".Net", "Drink coffee"} },
                 { "Birthday", DateTimeOffset.Now.AddYears(-20) },
-            }; /// Формирования словаря по имени свойства и значения этого свойства 
+            }; 
 
             try
             {
