@@ -27,7 +27,7 @@ namespace Azure
                 /// Генерирует индекс валидного символа
                 int charIndex = _random.Next(0, ValidChars.Length - 1);
 
-                /// Получает символ по индексу 
+                /// Записать символ по индексу 
                 stringBuilder.Append(ValidChars[charIndex]); 
             }
 

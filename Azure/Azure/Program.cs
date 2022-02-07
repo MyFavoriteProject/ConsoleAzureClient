@@ -234,6 +234,7 @@ namespace Azure
             Console.WriteLine();
             try
             {
+                /// Получение массива байтов фото по пути
                 byte[] imageBytes = File.ReadAllBytes(imgPath);
 
                 _azureClient.UpdateUserPhotoAsync(userId, imageBytes).GetAwaiter().GetResult();

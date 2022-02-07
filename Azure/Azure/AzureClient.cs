@@ -60,7 +60,7 @@ namespace Azure
             /// Получение информации о типе для сетинга свойств 
             Type userType = typeof(User);
 
-            /// Формирования объекта User по имени свойства и значения в словаре
+            /// Формирования объекта User по имени свойства и значению в словаре
             foreach (KeyValuePair<string, object> propNameValue in propNameByValueDictionary) 
             {
                 userType.GetProperty(propNameValue.Key)
@@ -74,7 +74,7 @@ namespace Azure
         
         public async Task<string> ResetUserPasswordAsync(string userId)
         {
-            /// Генерация пароля от 8 до 16 символов 
+            /// Генерация пароля 10 символов 
             string password = _passwordGenerator.GetPassword(); 
 
             User user = new User
