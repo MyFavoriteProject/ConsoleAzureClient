@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -34,36 +35,41 @@ namespace Azure
                     Password = password,
                     ForceChangePasswordNextSignIn = true
                 }
-            };
+            }; /// Формирования объекта для создание пользователя
 
-            User user = await _graphClient.Users.Request().AddAsync(newUser);
+            User user = await _graphClient.Users
+                .Request()
+                .AddAsync(newUser);
 
             UserCredentials result = new UserCredentials
             {
                 Id = user.Id,
                 UserPrincipalName = user.UserPrincipalName,
                 Password = password,
-            };
+            }; /// Формирования объекта для обращения к созданому пользователю
 
             return result;
         }
 
-        public async Task UpdateUser(string userId, Dictionary<string, object> propNameValueDictionary)
+        public async Task UpdateUser(string userId, Dictionary<string, object> propNameByValueDictionary)
         {
             User user = new User();
-            var userType = typeof(User);
-
-            foreach (var propNameValue in propNameValueDictionary) // Формирования объекта User по имени свойства и значения
+            Type userType = typeof(User); /// Получение информации о типе для сетинга свойств 
+            
+            foreach (KeyValuePair<string, object> propNameValue in propNameByValueDictionary) /// Формирования объекта User по имени свойства и значения словаря
             {
-                userType.GetProperty(propNameValue.Key)?.SetValue(user, propNameValue.Value);
+                userType.GetProperty(propNameValue.Key)
+                    ?.SetValue(user, propNameValue.Value);
             }
             
-            await _graphClient.Users[userId].Request().UpdateAsync(user);
+            await _graphClient.Users[userId]
+                .Request()
+                .UpdateAsync(user);
         }
         
         public async Task<string> ResetUserPassword(string userId)
         {
-            string password = _passwordGenerator.GetPassword();
+            string password = _passwordGenerator.GetPassword(); /// Генерация пароля от 8 до 16 символов 
 
             User user = new User
             {
@@ -85,11 +91,10 @@ namespace Azure
             {
                 AccountEnabled = accountEnabled
             };
-
             await _graphClient.Users[userId].Request().UpdateAsync(user);
         }
 
-        public async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId)
+        public async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId) /// Получает SharePoint Online свойства 
         {
             User user = await _graphClient.Users[userId].Request()
                 .Select(
@@ -141,7 +146,7 @@ namespace Azure
                 SecurityEnabled = securityEnabled,
                 GroupTypes = new List<string>
                 {
-                    "Unified"
+                    "Unified" /// Указывает на Microsoft 365 group
                 },
             };
 
@@ -151,12 +156,14 @@ namespace Azure
 
         public async Task AddMemberInGroup(string groupId, string userId)
         {
-            DirectoryObject directoryObject = new DirectoryObject
+            DirectoryObject user = new DirectoryObject
             {
                 Id = userId
             };
 
-            await _graphClient.Groups[groupId].Members.References.Request().AddAsync(directoryObject);
+            //DirectoryObject user = await _graphClient.Users[userId].Request().GetAsync();
+
+            await _graphClient.Groups[groupId].Members.References.Request().AddAsync(user);
         }
 
         public async Task RemoveMemberFromGroup(string groupId, string userId)
@@ -166,25 +173,25 @@ namespace Azure
 
         public async Task<string> GetPhotoHash(string userId)
         {
-            var photoInfo = await _graphClient.Users[userId].Photo.Request().GetAsync();
+            ProfilePhoto profilePhoto = await _graphClient.Users[userId].Photo.Request().GetAsync(); /// Получение информации о фото
 
-            JsonElement? value = photoInfo.AdditionalData["@odata.mediaEtag"] as JsonElement?;
+            JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?; /// По @odata.mediaEtag получаем хеш тип которого JsonElement
 
             return value?.ToString();
         }
 
         public async Task<byte[]> GetUserPhoto(string userId)
         {
-            var stream = await _graphClient.Users[userId].Photo.Content.Request().GetAsync();
+            Stream stream = await _graphClient.Users[userId].Photo.Content.Request().GetAsync();
 
-            await using MemoryStream ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            return ms.ToArray();
+            await using MemoryStream memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            return memoryStream.ToArray(); /// MemoryStream было использовано для получения byte[]
         }
 
         public async Task UpdateUserPhoto(string userId, byte[] imageBytes)
         {
-            await using var stream = new MemoryStream(imageBytes);
+            await using MemoryStream stream = new MemoryStream(imageBytes); /// Приведение массива байтов к Stream
 
             await _graphClient.Users[userId].Photo.Content.Request().PutAsync(stream);
         }

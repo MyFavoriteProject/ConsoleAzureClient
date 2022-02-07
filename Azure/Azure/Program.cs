@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Azure.Models;
 
@@ -12,12 +13,11 @@ namespace Azure
 
         static void Main(string[] args)
         {
-            Dictionary<string, string> idHashDictionary = new Dictionary<string, string>();
-
             UserCredentials userCredentials = CreateUser().GetAwaiter().GetResult();
 
-            string userId = userCredentials?.Id ?? "8a7cca23-9049-495e-b1d3-e6b28877ece8";
-            
+            string userId = userCredentials?.Id; /// Если необходимо обратится к созданому пользователю
+            //string userId = "56f5423e-3eee-4dbf-a286-baf96e795e8a"; /// Если пользователь уже создан, и нужно обращение к нему
+
             UpdateUser(userId).GetAwaiter().GetResult();
 
             try
@@ -53,33 +53,39 @@ namespace Azure
 
             ResetPassword(userId);
 
-            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3615.JPG");
+            Dictionary<string, string> idByHashDictionary = new Dictionary<string, string>(); /// Запись по id значений хеша картинок 
+
+            Task.Delay(2000).GetAwaiter().GetResult();
+
+            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3615.JPG"); /// Путь указан статической картинки для обновления у пользователя
+
+            string photoHash = string.Empty;
 
             try
             {
-                string photoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
-                idHashDictionary.Add(userId, photoHash);
+                photoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
 
-            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3614.JPG");
+            idByHashDictionary.Add(userId, photoHash);
+
+            UpdateUserPhoto(userId, "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3614.JPG"); /// Путь указан статической картинки для обновления у пользователя
 
             try
             {
                 string newPhotoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
 
-                if (idHashDictionary.TryGetValue(userId, out string oldPhotoHash))
+                if (idByHashDictionary.TryGetValue(userId, out string oldPhotoHash)) /// Получает значения хеша которое было записано ранее 
                 {
-                    if (!newPhotoHash.Equals(oldPhotoHash))
+                    if (!newPhotoHash.Equals(oldPhotoHash)) /// Если хеши не соответсвуют, идёт получение byte[] нового изображения и запись в файл
                     {
-
                         byte[] imageBytes = _azureClient.GetUserPhoto(userId).GetAwaiter().GetResult();
 
                         File.WriteAllBytes(@"C:\Users\d.bondarenko\Documents\GitHub\ConsoleAzureClient\Azure\Azure\Img\ImageFromAzureAD.JPG",
-                            imageBytes); // Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
+                            imageBytes); /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
                     }
                 }
             }
@@ -88,7 +94,8 @@ namespace Azure
                 Console.WriteLine(e);
             }
 
-            UpdateAdditionalInfoUser(userId).GetAwaiter().GetResult();
+            UpdateAdditionalInfoUser(userId).GetAwaiter().GetResult(); /// Обновление атрибутов SPO у пользователя лучше проводить спустя несколько минут после создания
+                                                                       /// Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
 
             try
             {
@@ -100,7 +107,7 @@ namespace Azure
             }
         }
 
-        public static async Task<UserCredentials> CreateUser()
+        static async Task<UserCredentials> CreateUser()
         {
             Console.WriteLine();
 
@@ -124,19 +131,19 @@ namespace Azure
             return userCredentials;
         }
 
-        public static async Task UpdateUser(string userId)
+        static async Task UpdateUser(string userId) /// Обновление только Azure AD свойств 
         {
             Console.WriteLine();
 
-            Dictionary<string, object> propertyValueDictionary = new Dictionary<string, object>
+            Dictionary<string, object> propNameByValueDictionary = new Dictionary<string, object>
             {
-                {"BusinessPhones", new List<string>{ "937-99-92" }},
-                {"GivenName", "Some One"},
-                {"PasswordPolicies", "DisableStrongPassword"},
-            };
+                { "BusinessPhones", new List<string>{ "937-99-92" }},
+                { "GivenName", "Some One" },
+                { "PasswordPolicies", "DisableStrongPassword" },
+            }; /// Формирования словаря по имени свойства и значения этого свойства 
             try
             {
-                await _azureClient.UpdateUser(userId, propertyValueDictionary);
+                await _azureClient.UpdateUser(userId, propNameByValueDictionary);
                 Console.WriteLine("UpdateUser was success");
             }
             catch (Exception e)
@@ -147,20 +154,20 @@ namespace Azure
             Console.WriteLine();
         }
 
-        public static async Task UpdateAdditionalInfoUser(string userId)
+        static async Task UpdateAdditionalInfoUser(string userId) /// Обновление только SharePoint Online свойств 
         {
             Console.WriteLine();
 
-            Dictionary<string, object> propertyValueDictionary = new Dictionary<string, object>
+            Dictionary<string, object> propNameByValueDictionary = new Dictionary<string, object>
             {
-                {"AboutMe", "Im Dev"},
-                {"Skills", new List<string>{"C#", ".Net", "Drink coffee"}},
-                {"Birthday", DateTimeOffset.Now.AddYears(-20)}
-            };
+                { "AboutMe", "Im Dev" },
+                { "Skills", new List<string>{"C#", ".Net", "Drink coffee"} },
+                { "Birthday", DateTimeOffset.Now.AddYears(-20) },
+            }; /// Формирования словаря по имени свойства и значения этого свойства 
 
             try
             {
-                await _azureClient.UpdateUser(userId, propertyValueDictionary);
+                await _azureClient.UpdateUser(userId, propNameByValueDictionary);
                 Console.WriteLine("UpdateAdditionalInfoUser was success");
             }
             catch (Exception e) /// 404 Not found Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
@@ -179,7 +186,7 @@ namespace Azure
             {
                 userAdditionalInfo = await _azureClient.GetUserAdditionalInfo(userId);
                 Console.WriteLine("GetUserAdditionalInfo was success");
-                Console.WriteLine(@$"AboutMe - {userAdditionalInfo.AboutMe}");
+                Console.WriteLine($"AboutMe - {userAdditionalInfo.AboutMe}");
                 Console.WriteLine($"Birthday - {userAdditionalInfo.Birthday}");
             }
             catch (Exception e)
@@ -191,7 +198,7 @@ namespace Azure
             return userAdditionalInfo;
         }
         
-        public static void ResetPassword(string userId)
+        static void ResetPassword(string userId)
         {
             Console.WriteLine();
             try
@@ -206,7 +213,7 @@ namespace Azure
             Console.WriteLine();
         }
 
-        public static void UpdateUserPhoto(string userId, string imgPath)
+        static void UpdateUserPhoto(string userId, string imgPath)
         {
             Console.WriteLine();
             try
