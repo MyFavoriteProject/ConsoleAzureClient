@@ -20,7 +20,7 @@ namespace Azure
             _graphClient = GetGraphServiceClient();
         }
 
-        public async Task<UserCredentials> CreateUser(string displayName, string mailNickname, string userPrincipalName)
+        public async Task<UserCredential> CreateUser(string displayName, string mailNickname, string userPrincipalName)
         {
             string password = _passwordGenerator.GetPassword();
 
@@ -43,14 +43,14 @@ namespace Azure
                 .AddAsync(newUser);
 
             /// Формирования объекта для обращения к созданому пользователю
-            UserCredentials result = new UserCredentials
+            UserCredential userCredential = new UserCredential
             {
                 Id = user.Id,
                 UserPrincipalName = user.UserPrincipalName,
                 Password = password,
             }; 
 
-            return result;
+            return userCredential;
         }
 
         public async Task UpdateUser(string userId, Dictionary<string, object> propNameByValueDictionary)
@@ -86,7 +86,9 @@ namespace Azure
                 }
             };
 
-            await _graphClient.Users[userId].Request().UpdateAsync(user);
+            await _graphClient.Users[userId]
+                .Request()
+                .UpdateAsync(user);
 
             return password;
         }
@@ -233,7 +235,7 @@ namespace Azure
             const string clientId = "31d2d6a6-f6ff-4fcc-960b-e50979fe69d8";
             const string clientSecret = "f2i7Q~JLJlWDGmfUcEnjpEbGlg3~OaTSEvkBa";
 
-            /// /.default подтягивает perissions приложения
+            /// "/.default" подтягивает perissions приложения
             string[] scopes = { "https://graph.microsoft.com/.default" };
 
             TokenCredentialOptions options = new TokenCredentialOptions

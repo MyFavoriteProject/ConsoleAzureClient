@@ -12,10 +12,10 @@ namespace Azure
 
         static void Main(string[] args)
         {
-            UserCredentials userCredentials = CreateUser().GetAwaiter().GetResult();
+            UserCredential userCredential = CreateUser().GetAwaiter().GetResult();
 
             /// Если необходимо обратится к созданому пользователю
-            string userId = userCredentials.Id; 
+            string userId = userCredential.Id; 
 
             UpdateUser(userId).GetAwaiter().GetResult();
 
@@ -115,23 +115,23 @@ namespace Azure
             }
         }
 
-        static async Task<UserCredentials> CreateUser()
+        static async Task<UserCredential> CreateUser()
         {
             Console.WriteLine();
 
-            UserCredentials userCredentials = default;
+            UserCredential userCredential = default;
 
             try
             {
                 /// Входными параметрами передаются значения для создания юзера
-                userCredentials = await _azureClient.CreateUser("First user", 
+                userCredential = await _azureClient.CreateUser("First user", 
                     "FirstUser", 
                     "FirstUser@dimabondarenko888gmail.onmicrosoft.com");
                 
                 Console.WriteLine("Created user:"); 
-                Console.WriteLine($"User Id - {userCredentials.Id}");
-                Console.WriteLine($"User PrincipalName - {userCredentials.UserPrincipalName}");
-                Console.WriteLine($"User password - {userCredentials.Password}");
+                Console.WriteLine($"User Id - {userCredential.Id}");
+                Console.WriteLine($"User PrincipalName - {userCredential.UserPrincipalName}");
+                Console.WriteLine($"User password - {userCredential.Password}");
             }
             catch (Exception e)
             {
@@ -139,7 +139,7 @@ namespace Azure
             }
             Console.WriteLine();
 
-            return userCredentials;
+            return userCredential;
         }
 
         /// Обновление только Azure AD свойств 
