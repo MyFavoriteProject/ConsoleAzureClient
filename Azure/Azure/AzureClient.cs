@@ -20,7 +20,7 @@ namespace Azure
             _graphClient = GetGraphServiceClient();
         }
 
-        public async Task<UserCredential> CreateUser(string displayName, string mailNickname, string userPrincipalName)
+        public async Task<UserCredential> CreateUserAsync(string displayName, string mailNickname, string userPrincipalName)
         {
             string password = _passwordGenerator.GetPassword();
 
@@ -53,7 +53,7 @@ namespace Azure
             return userCredential;
         }
 
-        public async Task UpdateUser(string userId, Dictionary<string, object> propNameByValueDictionary)
+        public async Task UpdateUserAsync(string userId, Dictionary<string, object> propNameByValueDictionary)
         {
             User user = new User();
 
@@ -93,7 +93,7 @@ namespace Azure
             return password;
         }
         
-        public async Task SetAccountEnabled(string userId, bool accountEnabled)
+        public async Task SetAccountEnabledAsync(string userId, bool accountEnabled)
         {
             User user = new User
             {
@@ -105,7 +105,7 @@ namespace Azure
         }
 
         /// Получает SharePoint Online свойства 
-        public async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId) 
+        public async Task<UserAdditionalInfo> GetUserAdditionalInfoAsync(string userId) 
         {
             User user = await _graphClient.Users[userId].Request()
                 .Select(
@@ -139,14 +139,14 @@ namespace Azure
             return user.PasswordPolicies;
         }
 
-        public async Task DeleteUser(string userId)
+        public async Task DeleteUserAsync(string userId)
         {
             await _graphClient.Users[userId]
                 .Request()
                 .DeleteAsync();
         }
 
-        public async Task RestoreUser(string userId)
+        public async Task RestoreUserAsync(string userId)
         {
             await _graphClient.Directory.DeletedItems[userId]
                 .Restore()
@@ -154,7 +154,7 @@ namespace Azure
                 .PostAsync();
         }
 
-        public async Task<string> CreateGroup(string displayName, string mailNickname, bool mailEnabled,
+        public async Task<string> CreateGroupAsync(string displayName, string mailNickname, bool mailEnabled,
             bool securityEnabled)
         {
             Group newGroup = new Group
@@ -175,7 +175,7 @@ namespace Azure
             return group.Id;
         }
 
-        public async Task AddMemberInGroup(string groupId, string userId)
+        public async Task AddMemberInGroupAsync(string groupId, string userId)
         {
             DirectoryObject user = new DirectoryObject
             {
@@ -187,14 +187,14 @@ namespace Azure
                 .AddAsync(user);
         }
 
-        public async Task RemoveMemberFromGroup(string groupId, string userId)
+        public async Task RemoveMemberFromGroupAsync(string groupId, string userId)
         {
             await _graphClient.Groups[groupId].Members[userId].Reference
                 .Request()
                 .DeleteAsync();
         }
 
-        public async Task<string> GetPhotoHash(string userId)
+        public async Task<string> GetPhotoHashAsync(string userId)
         {
             /// Получение информации о фото
             ProfilePhoto profilePhoto = await _graphClient.Users[userId].Photo
@@ -207,7 +207,7 @@ namespace Azure
             return value?.ToString();
         }
 
-        public async Task<byte[]> GetUserPhoto(string userId)
+        public async Task<byte[]> GetUserPhotoAsync(string userId)
         {
             Stream stream = await _graphClient.Users[userId].Photo.Content
                 .Request()
@@ -219,7 +219,7 @@ namespace Azure
             return memoryStream.ToArray(); 
         }
 
-        public async Task UpdateUserPhoto(string userId, byte[] imageBytes)
+        public async Task UpdateUserPhotoAsync(string userId, byte[] imageBytes)
         {
             /// Приведение массива байтов к Stream
             await using MemoryStream stream = new MemoryStream(imageBytes); 

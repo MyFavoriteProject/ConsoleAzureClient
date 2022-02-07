@@ -12,16 +12,16 @@ namespace Azure
 
         static void Main(string[] args)
         {
-            UserCredential userCredential = CreateUser().GetAwaiter().GetResult();
+            UserCredential userCredential = CreateUser();
 
             /// Если необходимо обратится к созданому пользователю
             string userId = userCredential.Id; 
 
-            UpdateUser(userId).GetAwaiter().GetResult();
+            UpdateUser(userId);
 
             try
             {
-                _azureClient.SetAccountEnabled(userId, false).GetAwaiter().GetResult();
+                _azureClient.SetAccountEnabledAsync(userId, false).GetAwaiter().GetResult();
                 string userPasswordPolicies = _azureClient.GetUserPasswordPolicies(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
@@ -32,9 +32,9 @@ namespace Azure
             try
             {
                 /// Входными параметрами передаются значения для создания группы 
-                string groupId = _azureClient.CreateGroup("Library Assist", "library", true, false).GetAwaiter().GetResult();
-                _azureClient.AddMemberInGroup(groupId, userId).GetAwaiter().GetResult();
-                _azureClient.RemoveMemberFromGroup(groupId, userId).GetAwaiter().GetResult();
+                string groupId = _azureClient.CreateGroupAsync("Library Assist", "library", true, false).GetAwaiter().GetResult();
+                _azureClient.AddMemberInGroupAsync(groupId, userId).GetAwaiter().GetResult();
+                _azureClient.RemoveMemberFromGroupAsync(groupId, userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -43,8 +43,8 @@ namespace Azure
 
             try
             {
-                _azureClient.DeleteUser(userId).GetAwaiter().GetResult();
-                _azureClient.RestoreUser(userId).GetAwaiter().GetResult();
+                _azureClient.DeleteUserAsync(userId).GetAwaiter().GetResult();
+                _azureClient.RestoreUserAsync(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -66,7 +66,7 @@ namespace Azure
 
             try
             {
-                photoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
+                photoHash = _azureClient.GetPhotoHashAsync(userId).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -80,7 +80,7 @@ namespace Azure
 
             try
             {
-                string newPhotoHash = _azureClient.GetPhotoHash(userId).GetAwaiter().GetResult();
+                string newPhotoHash = _azureClient.GetPhotoHashAsync(userId).GetAwaiter().GetResult();
 
                 /// Получает значения хеша которое было записано ранее 
                 if (idByHashDictionary.TryGetValue(userId, out string oldPhotoHash)) 
@@ -88,7 +88,7 @@ namespace Azure
                     /// Если хеши разные, идёт получение byte[] нового изображения и запись в файл
                     if (!newPhotoHash.Equals(oldPhotoHash)) 
                     {
-                        byte[] imageBytes = _azureClient.GetUserPhoto(userId).GetAwaiter().GetResult();
+                        byte[] imageBytes = _azureClient.GetUserPhotoAsync(userId).GetAwaiter().GetResult();
 
                         /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
                         File.WriteAllBytes(@"C:\Users\d.bondarenko\Documents\GitHub\ConsoleAzureClient\Azure\Azure\Img\ImageFromAzureAD.JPG",
@@ -103,11 +103,11 @@ namespace Azure
 
             /// Обновление атрибутов SPO у пользователя лучше проводить спустя несколько минут после создания
             /// Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
-            UpdateAdditionalInfoUser(userId).GetAwaiter().GetResult(); 
+            UpdateAdditionalInfoUser(userId); 
 
             try
             {
-                UserAdditionalInfo userAdditionalInfo = GetUserAdditionalInfo(userId).GetAwaiter().GetResult();
+                UserAdditionalInfo userAdditionalInfo = GetUserAdditionalInfo(userId);
             }
             catch (Exception e)
             {
@@ -115,7 +115,7 @@ namespace Azure
             }
         }
 
-        static async Task<UserCredential> CreateUser()
+        private static UserCredential CreateUser()
         {
             Console.WriteLine();
 
@@ -124,9 +124,9 @@ namespace Azure
             try
             {
                 /// Входными параметрами передаются значения для создания юзера
-                userCredential = await _azureClient.CreateUser("First user", 
+                userCredential = _azureClient.CreateUserAsync("First user", 
                     "FirstUser", 
-                    "FirstUser@dimabondarenko888gmail.onmicrosoft.com");
+                    "FirstUser@dimabondarenko888gmail.onmicrosoft.com").GetAwaiter().GetResult();
                 
                 Console.WriteLine("Created user:"); 
                 Console.WriteLine($"User Id - {userCredential.Id}");
@@ -143,7 +143,7 @@ namespace Azure
         }
 
         /// Обновление только Azure AD свойств 
-        static async Task UpdateUser(string userId) 
+        static void UpdateUser(string userId) 
         {
             Console.WriteLine();
 
@@ -157,7 +157,7 @@ namespace Azure
 
             try
             {
-                await _azureClient.UpdateUser(userId, propNameByValueDictionary);
+                _azureClient.UpdateUserAsync(userId, propNameByValueDictionary).GetAwaiter().GetResult();
                 Console.WriteLine("UpdateUser was success");
             }
             catch (Exception e)
@@ -169,7 +169,7 @@ namespace Azure
         }
 
         /// Обновление только SharePoint Online свойств 
-        static async Task UpdateAdditionalInfoUser(string userId) 
+        static void UpdateAdditionalInfoUser(string userId) 
         {
             Console.WriteLine();
 
@@ -183,7 +183,7 @@ namespace Azure
 
             try
             {
-                await _azureClient.UpdateUser(userId, propNameByValueDictionary);
+                _azureClient.UpdateUserAsync(userId, propNameByValueDictionary).GetAwaiter().GetResult();
                 Console.WriteLine("UpdateAdditionalInfoUser was success");
             }
             catch (Exception e) /// If 404 Not found. Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
@@ -194,13 +194,13 @@ namespace Azure
             Console.WriteLine();
         }
         
-        static async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId)
+        static UserAdditionalInfo GetUserAdditionalInfo(string userId)
         {
             Console.WriteLine();
             UserAdditionalInfo userAdditionalInfo = default;
             try
             {
-                userAdditionalInfo = await _azureClient.GetUserAdditionalInfo(userId);
+                userAdditionalInfo = _azureClient.GetUserAdditionalInfoAsync(userId).GetAwaiter().GetResult();
                 Console.WriteLine("GetUserAdditionalInfo was success");
                 Console.WriteLine($"AboutMe - {userAdditionalInfo.AboutMe}");
                 Console.WriteLine($"Birthday - {userAdditionalInfo.Birthday}");
@@ -236,7 +236,7 @@ namespace Azure
             {
                 byte[] imageBytes = File.ReadAllBytes(imgPath);
 
-                _azureClient.UpdateUserPhoto(userId, imageBytes).GetAwaiter().GetResult();
+                _azureClient.UpdateUserPhotoAsync(userId, imageBytes).GetAwaiter().GetResult();
 
                 Console.WriteLine("Updated User photo was success");
             }
