@@ -14,8 +14,7 @@ namespace Azure
         {
             UserCredentials userCredentials = CreateUser().GetAwaiter().GetResult();
 
-            string userId = userCredentials?.Id; /// Если необходимо обратится к созданому пользователю
-            //string userId = "56f5423e-3eee-4dbf-a286-baf96e795e8a"; /// Если пользователь уже создан, и нужно обращение к нему
+            string userId = userCredentials.Id; /// Если необходимо обратится к созданому пользователю
 
             UpdateUser(userId).GetAwaiter().GetResult();
 
@@ -115,8 +114,8 @@ namespace Azure
             try
             {
                 userCredentials = await _azureClient.CreateUser("First user", "FirstUser", "FirstUser@dimabondarenko888gmail.onmicrosoft.com");
-
-                Console.WriteLine("Created user:");
+                
+                Console.WriteLine("Created user:"); 
                 Console.WriteLine($"User Id - {userCredentials.Id}");
                 Console.WriteLine($"User PrincipalName - {userCredentials.UserPrincipalName}");
                 Console.WriteLine($"User password - {userCredentials.Password}");
@@ -169,7 +168,7 @@ namespace Azure
                 await _azureClient.UpdateUser(userId, propNameByValueDictionary);
                 Console.WriteLine("UpdateAdditionalInfoUser was success");
             }
-            catch (Exception e) /// 404 Not found Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
+            catch (Exception e) /// If 404 Not found. Issues: https://docs.microsoft.com/en-us/graph/known-issues#access-to-user-resources-is-delayed-after-creation
             {
                 Console.WriteLine(e);
             }

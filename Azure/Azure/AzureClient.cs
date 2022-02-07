@@ -56,7 +56,7 @@ namespace Azure
             User user = new User();
             Type userType = typeof(User); /// Получение информации о типе для сетинга свойств 
             
-            foreach (KeyValuePair<string, object> propNameValue in propNameByValueDictionary) /// Формирования объекта User по имени свойства и значения словаря
+            foreach (KeyValuePair<string, object> propNameValue in propNameByValueDictionary) /// Формирования объекта User по имени свойства и значения в словаре
             {
                 userType.GetProperty(propNameValue.Key)
                     ?.SetValue(user, propNameValue.Value);
@@ -91,7 +91,9 @@ namespace Azure
             {
                 AccountEnabled = accountEnabled
             };
-            await _graphClient.Users[userId].Request().UpdateAsync(user);
+            await _graphClient.Users[userId]
+                .Request()
+                .UpdateAsync(user);
         }
 
         public async Task<UserAdditionalInfo> GetUserAdditionalInfo(string userId) /// Получает SharePoint Online свойства 
@@ -120,19 +122,27 @@ namespace Azure
 
         public async Task<string> GetUserPasswordPolicies(string userId)
         {
-            User user = await _graphClient.Users[userId].Request().Select("passwordPolicies").GetAsync();
+            User user = await _graphClient.Users[userId]
+                .Request()
+                .Select("passwordPolicies")
+                .GetAsync();
 
             return user.PasswordPolicies;
         }
 
         public async Task DeleteUser(string userId)
         {
-            await _graphClient.Users[userId].Request().DeleteAsync();
+            await _graphClient.Users[userId]
+                .Request()
+                .DeleteAsync();
         }
 
         public async Task RestoreUser(string userId)
         {
-            await _graphClient.Directory.DeletedItems[userId].Restore().Request().PostAsync();
+            await _graphClient.Directory.DeletedItems[userId]
+                .Restore()
+                .Request()
+                .PostAsync();
         }
 
         public async Task<string> CreateGroup(string displayName, string mailNickname, bool mailEnabled,
@@ -150,7 +160,9 @@ namespace Azure
                 },
             };
 
-            Group group = await _graphClient.Groups.Request().AddAsync(newGroup);
+            Group group = await _graphClient.Groups
+                .Request()
+                .AddAsync(newGroup);
             return group.Id;
         }
 
@@ -161,17 +173,23 @@ namespace Azure
                 Id = userId
             };
             
-            await _graphClient.Groups[groupId].Members.References.Request().AddAsync(user);
+            await _graphClient.Groups[groupId].Members.References
+                .Request()
+                .AddAsync(user);
         }
 
         public async Task RemoveMemberFromGroup(string groupId, string userId)
         {
-            await _graphClient.Groups[groupId].Members[userId].Reference.Request().DeleteAsync();
+            await _graphClient.Groups[groupId].Members[userId].Reference
+                .Request()
+                .DeleteAsync();
         }
 
         public async Task<string> GetPhotoHash(string userId)
         {
-            ProfilePhoto profilePhoto = await _graphClient.Users[userId].Photo.Request().GetAsync(); /// Получение информации о фото
+            ProfilePhoto profilePhoto = await _graphClient.Users[userId].Photo
+                .Request()
+                .GetAsync(); /// Получение информации о фото
 
             JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?; /// По @odata.mediaEtag получаем хеш тип которого JsonElement
 
@@ -180,7 +198,9 @@ namespace Azure
 
         public async Task<byte[]> GetUserPhoto(string userId)
         {
-            Stream stream = await _graphClient.Users[userId].Photo.Content.Request().GetAsync();
+            Stream stream = await _graphClient.Users[userId].Photo.Content
+                .Request()
+                .GetAsync();
 
             await using MemoryStream memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
@@ -191,7 +211,9 @@ namespace Azure
         {
             await using MemoryStream stream = new MemoryStream(imageBytes); /// Приведение массива байтов к Stream
 
-            await _graphClient.Users[userId].Photo.Content.Request().PutAsync(stream);
+            await _graphClient.Users[userId].Photo.Content
+                .Request()
+                .PutAsync(stream);
         }
 
         private GraphServiceClient GetGraphServiceClient()
