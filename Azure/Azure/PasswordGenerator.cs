@@ -18,7 +18,7 @@ namespace Azure
             _random = new Random();
         }
 
-        public string GetPassword()
+        public string GeneratePassword()
         {
             StringBuilder stringBuilder = new StringBuilder();
 

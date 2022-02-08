@@ -20,21 +20,21 @@ namespace Azure
             _graphClient = GetGraphServiceClient();
         }
 
-        public async Task<UserCredential> CreateUserAsync(string displayName, string mailNickname, string userPrincipalName)
+        public async Task<UserInfo> CreateUserAsync(UserCreate userCreate)
         {
-            string password = _passwordGenerator.GetPassword();
+            string password = userCreate.Password ?? _passwordGenerator.GeneratePassword();
 
             /// Формирования объекта для создание пользователя
             User newUser = new User
             {
-                DisplayName = displayName,
-                MailNickname = mailNickname,
-                UserPrincipalName = userPrincipalName,
-                AccountEnabled = true,
+                DisplayName = userCreate.DisplayName,
+                MailNickname = userCreate.MailNickname,
+                UserPrincipalName = userCreate.UserPrincipalName,
+                AccountEnabled = userCreate.AccountEnabled ?? true,
                 PasswordProfile = new PasswordProfile()
                 {
                     Password = password,
-                    ForceChangePasswordNextSignIn = true
+                    ForceChangePasswordNextSignIn = userCreate.ForceChangePasswordNextSignIn ?? true
                 }
             }; 
 
@@ -42,40 +42,79 @@ namespace Azure
                 .Request()
                 .AddAsync(newUser);
 
-            /// Формирования объекта для обращения к созданому пользователю
-            UserCredential userCredential = new UserCredential
+            /// Формирования объекта учётных данных пользователя
+            UserInfo userInfo = new UserInfo
             {
                 Id = user.Id,
                 UserPrincipalName = user.UserPrincipalName,
                 Password = password,
             }; 
 
-            return userCredential;
+            return userInfo;
         }
 
-        public async Task UpdateUserAsync(string userId, Dictionary<string, object> propNameByValueDictionary)
+        public async Task UpdateUserAsync(UserInfo userInfo)
         {
-            User user = new User();
+            string userId = userInfo.Id;
 
-            /// Получение информации о типе для сетинга свойств 
-            Type userType = typeof(User);
-
-            /// Формирования объекта User по имени свойства и значению в словаре
-            foreach (KeyValuePair<string, object> propNameValue in propNameByValueDictionary) 
+            if (userInfo.AccountEnabled.HasValue)
             {
-                userType.GetProperty(propNameValue.Key)
-                    ?.SetValue(user, propNameValue.Value);
+                await SetAccountEnabledAsync(userId, userInfo.AccountEnabled.Value);
             }
-            
+
+            if (userInfo.AboutMe != null || userInfo.Birthday.HasValue || userInfo.HireDate.HasValue ||
+                userInfo.Interests != null || userInfo.MySite != null || userInfo.PastProjects != null ||
+                userInfo.Responsibilities != null || userInfo.Schools != null || userInfo.Skills != null)
+            {
+                await UpdateUserAdditionalProps(userInfo);
+            }
+
+            User user = new User
+            {
+                UserPrincipalName = userInfo.UserPrincipalName,
+                DisplayName = userInfo.DisplayName,
+                MailNickname = userInfo.MailNickname,
+                GivenName = userInfo.GivenName,
+                BusinessPhones = userInfo.BusinessPhones,
+                PasswordPolicies = userInfo.PasswordPolicies.ToString()
+            };
+
             await _graphClient.Users[userId]
                 .Request()
                 .UpdateAsync(user);
         }
         
+        public async Task<UserInfo> GetUserInfo(string userId)
+        {
+            User userStandardInfo = await _graphClient.Users[userId]
+                .Request().GetAsync();
+            User userAdditionalInfo = await GetUserAdditionalInfoAsync(userId);
+            PasswordPolicies passwordPolicies = await GetUserPasswordPoliciesAsync(userId);
+
+            return new UserInfo()
+            {
+                Id = userStandardInfo.Id,
+                UserPrincipalName = userStandardInfo.UserPrincipalName,
+                DisplayName = userStandardInfo.DisplayName,
+                MailNickname = userStandardInfo.MailNickname,
+                GivenName = userStandardInfo.GivenName,
+                PasswordPolicies = passwordPolicies,
+                AboutMe = userAdditionalInfo.AboutMe,
+                Birthday = userAdditionalInfo.Birthday,
+                HireDate = userAdditionalInfo.HireDate,
+                Interests = userAdditionalInfo.Interests,
+                MySite = userAdditionalInfo.MySite,
+                PastProjects = userAdditionalInfo.PastProjects,
+                PreferredName = userAdditionalInfo.PreferredName,
+                Responsibilities = userAdditionalInfo.Responsibilities,
+                Schools = userAdditionalInfo.Schools,
+                Skills = userAdditionalInfo.Skills
+            };
+        }
+
         public async Task<string> ResetUserPasswordAsync(string userId)
         {
-            /// Генерация пароля 10 символов 
-            string password = _passwordGenerator.GetPassword(); 
+            string password = _passwordGenerator.GeneratePassword(); 
 
             User user = new User
             {
@@ -93,52 +132,6 @@ namespace Azure
             return password;
         }
         
-        public async Task SetAccountEnabledAsync(string userId, bool accountEnabled)
-        {
-            User user = new User
-            {
-                AccountEnabled = accountEnabled
-            };
-            await _graphClient.Users[userId]
-                .Request()
-                .UpdateAsync(user);
-        }
-
-        /// Получает SharePoint Online свойства 
-        public async Task<UserAdditionalInfo> GetUserAdditionalInfoAsync(string userId) 
-        {
-            User user = await _graphClient.Users[userId].Request()
-                .Select(
-                    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills")
-                .GetAsync();
-
-            UserAdditionalInfo userAdditionalInfo = new UserAdditionalInfo()
-            {
-                AboutMe = user.AboutMe,
-                Birthday = user.Birthday,
-                HireDate = user.HireDate,
-                Interests = user.Interests,
-                MySite = user.MySite,
-                PastProjects = user.PastProjects,
-                PreferredName = user.PreferredName,
-                Responsibilities = user.Responsibilities,
-                Schools = user.Schools,
-                Skills = user.Skills
-            };
-
-            return userAdditionalInfo;
-        }
-
-        public async Task<string> GetUserPasswordPoliciesAsync(string userId)
-        {
-            User user = await _graphClient.Users[userId]
-                .Request()
-                .Select("passwordPolicies")
-                .GetAsync();
-
-            return user.PasswordPolicies;
-        }
-
         public async Task DeleteUserAsync(string userId)
         {
             await _graphClient.Users[userId]
@@ -154,19 +147,15 @@ namespace Azure
                 .PostAsync();
         }
 
-        public async Task<string> CreateGroupAsync(string displayName, string mailNickname, bool mailEnabled,
-            bool securityEnabled)
+        public async Task<string> CreateGroupAsync(GroupCreate groupCreate)
         {
             Group newGroup = new Group
             {
-                DisplayName = displayName,
-                MailNickname = mailNickname,
-                MailEnabled = mailEnabled,
-                SecurityEnabled = securityEnabled,
-                GroupTypes = new List<string>
-                {
-                    "Unified" /// Указывает на Microsoft 365 group
-                },
+                DisplayName = groupCreate.DisplayName,
+                MailNickname = groupCreate.MailNickname,
+                MailEnabled = groupCreate.MailEnabled,
+                SecurityEnabled = groupCreate.SecurityEnabled,
+                GroupTypes = groupCreate.GroupTypes
             };
 
             Group group = await _graphClient.Groups
@@ -247,6 +236,69 @@ namespace Azure
                 tenantId, clientId, clientSecret, options);
 
             return new GraphServiceClient(clientSecretCredential, scopes);
+        }
+        
+        /// Возвращает SharePoint Online свойства 
+        private async Task<User> GetUserAdditionalInfoAsync(string userId)
+        {
+            return await _graphClient.Users[userId].Request()
+                .Select(
+                    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills"
+                )
+                .GetAsync();
+        }
+
+        private async Task<PasswordPolicies> GetUserPasswordPoliciesAsync(string userId)
+        {
+            User user = await _graphClient.Users[userId]
+                .Request()
+                .Select("passwordPolicies")
+                .GetAsync();
+
+            if (user.PasswordPolicies == PasswordPolicies.DisablePasswordExpiration.ToString())
+            {
+                return PasswordPolicies.DisablePasswordExpiration;
+            }
+
+            if (user.PasswordPolicies == PasswordPolicies.DisableStrongPassword.ToString())
+            {
+                return PasswordPolicies.DisableStrongPassword;
+            }
+
+            return PasswordPolicies.NaN;
+        }
+        
+        private async Task SetAccountEnabledAsync(string userId, bool accountEnabled)
+        {
+            User user = new User
+            {
+                AccountEnabled = accountEnabled
+            };
+            await _graphClient.Users[userId]
+                .Request()
+                .UpdateAsync(user);
+        }
+
+        private async Task UpdateUserAdditionalProps(UserInfo userInfo)
+        {
+            string userId = userInfo.Id;
+
+            User user = new User
+            {
+                AboutMe = userInfo.AboutMe,
+                Birthday = userInfo.Birthday,
+                HireDate = userInfo.HireDate,
+                Interests = userInfo.Interests,
+                MySite = userInfo.MySite,
+                PastProjects = userInfo.PastProjects,
+                Responsibilities = userInfo.Responsibilities,
+                Schools = userInfo.Schools,
+                Skills = userInfo.Skills
+            };
+
+            await _graphClient.Users[userId]
+                .Request()
+                .UpdateAsync(user);
         }
     }
 }
