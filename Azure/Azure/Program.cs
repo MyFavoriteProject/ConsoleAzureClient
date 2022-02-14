@@ -4,10 +4,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Azure.Models;
-using Microsoft.Graph;
 using File = System.IO.File;
 
 namespace Azure
@@ -26,21 +24,21 @@ namespace Azure
             //UpdateAllUsers().GetAwaiter().GetResult();
             //GetUsersInfo().GetAwaiter().GetResult();
             //GetUsersInfo1().GetAwaiter().GetResult();
-
+            
             List<string> userIds = _azureClient.GetUserIds().GetAwaiter().GetResult();
 
             //Stopwatch sp = new Stopwatch();
             //sp.Start();
 
+            //UpdateAllUsers(userIds).GetAwaiter().GetResult();
+
             Console.WriteLine("Get hash start");
             var hashs = PerformanceComparison(userIds, takeUsers).GetAwaiter().GetResult();
 
-            Console.WriteLine("Hash count: " + hashs.Count);
+            Console.WriteLine("Get user info start");
+            List<UserInfo> userInfos = PerformanceComparison1(userIds, takeUsers).GetAwaiter().GetResult();
+            Console.WriteLine("Get user info count: " + userInfos.Count);
 
-            //Console.WriteLine("Get user info start");
-            //var userInfos = PerformanceComparison1(userIds, takeUsers).GetAwaiter().GetResult();
-
-            //Console.WriteLine("Get user info count: " + userInfos.Count);
 
             //Console.WriteLine("Get user info and hash start");
             //PerformanceComparison3(userIds).GetAwaiter().GetResult();
@@ -72,6 +70,55 @@ namespace Azure
                         Console.WriteLine(i * takeUsers);
                     }
                     
+                    List<KeyValuePair<string, string>> result = await _azureClient.GetUsersPhotoHashAsync(idsList[i]);
+
+                    userIdByPhotoHash.AddRange(result);
+                }
+            }
+            catch (HttpRequestException e)
+            {
+                if (e.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    return userIdByPhotoHash;
+                }
+                Console.WriteLine(e);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            Console.WriteLine("Total time: " + sp.Elapsed);
+            Console.WriteLine($"Users {userIdByPhotoHash.Count}");
+
+            sp.Stop();
+
+            return userIdByPhotoHash;
+        }
+
+
+        private static async Task<List<KeyValuePair<string, string>>> PerformanceComparison2(List<string> userIds, int takeUsers)
+        {
+            List<List<string>> idsList = userIds.Select((x, i) => new { Index = i, Value = x })
+                .GroupBy(x => x.Index / takeUsers)
+                .Select(x => x.Select(v => v.Value).ToList())
+                .ToList();
+
+            List<KeyValuePair<string, string>> userIdByPhotoHash = new List<KeyValuePair<string, string>>();
+
+            Stopwatch sp = new Stopwatch();
+            sp.Start();
+
+            try
+            {
+                for (int i = idsList.Count - 1; i >= 0; i--)
+                {
+                    if (i % 10 == 0)
+                    {
+                        Console.WriteLine(sp.Elapsed);
+                        Console.WriteLine(i * takeUsers);
+                    }
+
                     List<KeyValuePair<string, string>> result = await _azureClient.GetUsersPhotoHashAsync(idsList[i]);
 
                     userIdByPhotoHash.AddRange(result);
@@ -320,6 +367,52 @@ namespace Azure
             catch (Exception e)
             {
                 Console.WriteLine(e);
+            }
+        }
+
+        private static async Task UpdateAllUsers(List<string> userIds)
+        {
+            Stopwatch sp = new Stopwatch();
+            sp.Start();
+            List<UserInfo> userInfos = new List<UserInfo>();
+            for (int i = 0; i < userIds.Count; i++)
+            {
+                if (i % 100 == 0)
+                {
+                    Console.WriteLine(sp.Elapsed);
+                    Console.WriteLine(i);
+                }
+                UserInfo userInfo = new UserInfo
+                {
+                    Id = userIds[i],
+                    AboutMe = "Im Dev",
+                    Birthday = DateTimeOffset.Now.AddYears(-20),
+                    MySite = "123",
+                    PreferredName = "JSG",
+                    Skills = new List<string> { "C#", ".Net", "Drink coffee" },
+                };
+
+                userInfos.Add(userInfo);
+
+                if (userInfos.Count == 20)
+                {
+                    try
+                    {
+                        await _azureClient.UpdateUserAsync(userInfos);
+                    }
+                    catch (HttpRequestException e)
+                    {
+                        if (e.StatusCode == HttpStatusCode.TooManyRequests)
+                        {
+
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+                    userInfos.Clear();
+                }
             }
         }
 
@@ -599,7 +692,33 @@ namespace Azure
 
             return UserInfo;
         }
-        
+
+
+        static void GetUserInfo1(List<string> userIds, Stopwatch sp)
+        {
+            Console.WriteLine();
+            
+            for (int i = 0; i < userIds.Count; i++)
+            {
+                if (i % 100 == 0)
+                {
+                    Console.WriteLine(sp.Elapsed);
+                    Console.WriteLine(i);
+                }
+                try
+                {
+                    _azureClient.GetUserInfo2(userIds[i]);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+
+            
+            Console.WriteLine();
+        }
+
         static void ResetPassword(string userId)
         {
             Console.WriteLine();

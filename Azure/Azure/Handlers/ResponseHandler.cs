@@ -29,47 +29,43 @@ namespace Azure.Handlers
 
             if (response.Headers.Any(c => c.Key.Contains("throttle") || c.Key.Contains("limit")))
             {
-
+                Console.WriteLine("throttle or limit header found");
+                Console.ReadKey();
             }
 
             if (response.Content != null)
             {
-                if (response.Headers.TryGetValues("x-ms-throttle-limit-percentage", out IEnumerable<string>? value1))
+                if (response.Headers.TryGetValues("x-ms-throttle-limit-percentage", out IEnumerable<string>? value1)
+                    || response.Headers.TryGetValues("x-ms-throttle-scope", out IEnumerable<string>? value12)
+                    || response.Headers.TryGetValues("x-ms-throttle-information", out IEnumerable<string>? value3))
                 {
-
-                }
-                if (response.Headers.TryGetValues("x-ms-throttle-scope", out IEnumerable<string>? value12))
-                {
-
-                }
-                if (response.Headers.TryGetValues("x-ms-throttle-information", out IEnumerable<string>? value3))
-                {
-
+                    Console.WriteLine("throttle or limit header found");
+                    Console.ReadKey();
                 }
 
                 string responseContent = await response.Content.ReadAsStringAsync();
 
-
-                if (responseContent.Contains("header"))
+                if (!string.IsNullOrEmpty(responseContent))
                 {
                     StringBuilder stringBuilder = new StringBuilder();
 
                     stringBuilder.AppendLine("Response Header: ");
                     stringBuilder.AppendLine(response.Headers.ToString());
+
                     stringBuilder.AppendLine();
                     stringBuilder.AppendLine("Response Content: ");
                     stringBuilder.AppendLine(responseContent);
-                    
-                    File.WriteAllTextAsync(@$"C:\AzureLogs\AzureLogs{counter}.txt", stringBuilder.ToString());
 
+                    File.WriteAllTextAsync(@$"C:\AzureLogs\AzureLogs{counter}.txt", stringBuilder.ToString());
                     counter++;
                 }
 
                 if (responseContent.Contains("throttle") || responseContent.Contains("limit"))
                 {
-
+                    Console.WriteLine("throttle or limit header found");
+                    Console.ReadKey();
                 }
-
+                
             }
 
             return response;

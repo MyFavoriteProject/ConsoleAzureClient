@@ -114,8 +114,6 @@ namespace Azure
 
             userIds.AddRange(users.Select(c => c.Id).ToList());
 
-            string result = String.Join(", ", userIds.ToArray());
-
             while (users.NextPageRequest != null)
             {
                 users = await users.NextPageRequest.GetAsync();
@@ -147,19 +145,11 @@ namespace Azure
 
         public async Task<UserInfo> GetUserInfo(string userId)
         {
-            //User userStandardInfo = await _graphClient.Users[userId]
-            //    .Request().GetAsync();
             User userAdditionalInfo = await GetUserAdditionalInfoAsync(userId);
-            //PasswordPolicies passwordPolicies = await GetUserPasswordPoliciesAsync(userId);
 
             return new UserInfo()
             {
                 Id = userAdditionalInfo.Id,
-                //UserPrincipalName = userStandardInfo.UserPrincipalName,
-                //DisplayName = userStandardInfo.DisplayName,
-                //MailNickname = userStandardInfo.MailNickname,
-                //GivenName = userStandardInfo.GivenName,
-                //PasswordPolicies = passwordPolicies,
                 AboutMe = userAdditionalInfo.AboutMe,
                 Birthday = userAdditionalInfo.Birthday,
                 HireDate = userAdditionalInfo.HireDate,
@@ -171,6 +161,12 @@ namespace Azure
                 Schools = userAdditionalInfo.Schools,
                 Skills = userAdditionalInfo.Skills
             };
+        }
+
+
+        public void GetUserInfo2(string userId)
+        {
+            GetUserAdditionalInfoAsync1(userId);
         }
 
         public async Task<UserInfo> GetUserInfo1(string userId)
@@ -193,11 +189,77 @@ namespace Azure
             };
         }
 
+        public async Task UpdateUserAsync(List<UserInfo> userInfos)
+        {
+            List<string> requestIds = new List<string>();
+
+            BatchRequestContent batchRequestContent = new BatchRequestContent();
+
+            foreach (UserInfo userInfo in userInfos)
+            {
+                //User user = new User
+                //{
+                //    AboutMe = userInfo.AboutMe,
+                //    Birthday = userInfo.Birthday,
+                //    HireDate = userInfo.HireDate,
+                //    Interests = userInfo.Interests,
+                //    MySite = userInfo.MySite,
+                //    PastProjects = userInfo.PastProjects,
+                //    Responsibilities = userInfo.Responsibilities,
+                //    Schools = userInfo.Schools,
+                //    Skills = userInfo.Skills
+                //};
+
+                User user = new User
+                {
+                    BusinessPhones = new List<string> { "(057)937-99-92" },
+                    GivenName = "PVP",
+                };
+
+                HttpContent jsonUser = _graphClient.HttpProvider.Serializer.SerializeAsJsonContent(user);
+                
+                HttpRequestMessage request = _graphClient.Users[userInfo.Id].Request().GetHttpRequestMessage();
+                request.Method = HttpMethod.Patch;
+                request.Content = jsonUser;
+                request.Headers.Add("x-ms-throttle-priority", "Normal");
+
+                string requestId = batchRequestContent.AddBatchRequestStep(request);
+
+                requestIds.Add(requestId);
+            }
+            
+            BatchResponseContent returnedResponse = await _graphClient.Batch.Request().PostAsync(batchRequestContent);
+
+            try
+            {
+                foreach (string requestId in requestIds)
+                {
+                    HttpResponseMessage response = await returnedResponse.GetResponseByIdAsync(requestId);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+
+                    }
+                }
+            }
+            catch (ServiceException ex)
+            {
+                if (ex.Message.Contains(" 429 "))
+                {
+                    throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                }
+                //Console.WriteLine($"UserId: {requestId.UserId}");
+                Console.WriteLine($"Get user failed: {ex.Error.Message}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
 
         public async Task CreateUserAsync(List<UserCreate> userCreates)
         {
             List<string> requestIds = new List<string>();
-            List<UserInfo> userInfos = new List<UserInfo>();
             
             BatchRequestContent batchRequestContent = new BatchRequestContent();
 
@@ -234,7 +296,7 @@ namespace Azure
             {
                 foreach (string requestId in requestIds)
                 {
-                    var response = await returnedResponse.GetResponseByIdAsync(requestId);
+                    HttpResponseMessage response = await returnedResponse.GetResponseByIdAsync(requestId);
                 }
             }
             catch (ServiceException ex)
@@ -262,9 +324,15 @@ namespace Azure
             
             foreach (string id in userIds)
             {
-                IUserRequest request = _graphClient.Users[id].Request();
+                HttpRequestMessage request = _graphClient.Users[id].Request()
+                    //.Select("id, givenName, businessPhones").GetHttpRequestMessage();
                     //.Select(
-                    //    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills, id");
+                    //    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills, id")
+                    .Expand("manager")
+                    .GetHttpRequestMessage();
+
+                request.Headers.Add("x-ms-throttle-priority", "Normal"); 
+                request.Method = HttpMethod.Get;
 
                 string requestId = batchRequestContent.AddBatchRequestStep(request);
 
@@ -292,7 +360,9 @@ namespace Azure
                         PreferredName = user.PreferredName,
                         Responsibilities = user.Responsibilities,
                         Schools = user.Schools,
-                        Skills = user.Skills
+                        Skills = user.Skills,
+                        GivenName = user.GivenName,
+                        BusinessPhones = user.BusinessPhones
                     };
 
                     userInfos.Add(userInfo);
@@ -543,8 +613,7 @@ namespace Azure
                 {
                     ProfilePhoto profilePhoto = await returnedResponse
                         .GetResponseByIdAsync<ProfilePhoto>(userIdByRequest.Value);
-
-
+                    
                     /// По @odata.mediaEtag получаем хеш тип которого JsonElement
                     JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
 
@@ -556,7 +625,7 @@ namespace Azure
                     {
                         Console.WriteLine($"Get user failed: {e.Error.Message}");
                     }
-                    hashDictionarys.Add(new KeyValuePair<string, string>(userIdByRequest.Key, null));
+                    hashDictionarys.Add(new KeyValuePair<string, string>(userIdByRequest.Key, e.Error.Message));
                 }
             }
 
@@ -691,12 +760,12 @@ namespace Azure
                 clientSecretCredential, scopes);
             
             List<DelegatingHandler> handlers = new List<DelegatingHandler> 
-            { 
+            {
                 new Handlers.ResponseHandler(),
                 new AuthenticationHandler(authProvider),
                 new CompressionHandler(),
-                new RetryHandler(),
-                new RedirectHandler()
+                //new RetryHandler(),
+                new RedirectHandler(),
             };
             
             HttpClient httpClient = GraphClientFactory.Create(handlers);
@@ -739,9 +808,12 @@ namespace Azure
         private async Task<User> GetUserAdditionalInfoAsync(string userId)
         {
             return await _graphClient.Users[userId].Request()
-                .Select(
-                    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills, id"
-                )
+                .GetAsync();
+        }
+
+        private void GetUserAdditionalInfoAsync1(string userId)
+        {
+            _graphClient.Users[userId].Request()
                 .GetAsync();
         }
 

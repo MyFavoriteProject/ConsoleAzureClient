@@ -13,7 +13,7 @@ namespace Azure.Models
         public string MailNickname { get; set; }
         public string GivenName { get; set; }
         public PasswordPolicies PasswordPolicies { get; set; }
-        public List<string> BusinessPhones { get; set; }
+        public IEnumerable<string> BusinessPhones { get; set; }
         
         #region Additional props
 
