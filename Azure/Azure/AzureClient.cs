@@ -14,33 +14,15 @@ namespace Azure
 {
     public class AzureClient
     {
-        private readonly GraphServiceClient _graphClient;
-        private readonly PasswordGenerator _passwordGenerator;
+        private readonly GraphServiceClient graphClient;
+        private readonly PasswordGenerator passwordGenerator;
 
         public AzureClient()
         {
-            _passwordGenerator = new PasswordGenerator();
-            _graphClient = GetGraphServiceClient();
-
+            passwordGenerator = new PasswordGenerator();
+            this.graphClient = GetGraphServiceClient();
         }
-
-
-        public async Task GetUsers(List<string> ids)
-        {
-            List<string> types = new List<String>()
-            {
-                "user"
-            };
-
-            IGraphServiceUsersCollectionPage users = await _graphClient.Users //.DirectoryObjects
-                //.GetByIds(userIds, types)
-                .Request()
-                //.Select("id, photo")
-                .Expand("photo")
-                //.PostAsync();
-                .GetAsync();
-        }
-
+        
         public async Task<UserInfo> CreateUserAsync(UserCreate userCreate)
         {
             string password = userCreate.Password;
@@ -57,9 +39,9 @@ namespace Azure
                     Password = password,
                     ForceChangePasswordNextSignIn = userCreate.ForceChangePasswordNextSignIn ?? true
                 }
-            }; 
+            };
 
-            User user = await _graphClient.Users
+            User user = await graphClient.Users
                 .Request()
                 .AddAsync(newUser);
 
@@ -69,7 +51,7 @@ namespace Azure
                 Id = user.Id,
                 UserPrincipalName = user.UserPrincipalName,
                 Password = password,
-            }; 
+            };
 
             return userInfo;
         }
@@ -83,9 +65,12 @@ namespace Azure
                 await SetAccountEnabledAsync(userId, userInfo.AccountEnabled.Value);
             }
 
-            if (userInfo.AboutMe != null || userInfo.Birthday.HasValue || userInfo.HireDate.HasValue ||
-                userInfo.Interests != null || userInfo.MySite != null || userInfo.PastProjects != null ||
-                userInfo.Responsibilities != null || userInfo.Schools != null || userInfo.Skills != null)
+            if (userInfo.AboutMe != null || userInfo.Birthday.HasValue ||
+                userInfo.HireDate.HasValue ||
+                userInfo.Interests != null || userInfo.MySite != null ||
+                userInfo.PastProjects != null ||
+                userInfo.Responsibilities != null || userInfo.Schools != null ||
+                userInfo.Skills != null)
             {
                 await UpdateUserAdditionalProps(userInfo);
             }
@@ -100,7 +85,7 @@ namespace Azure
                 PasswordPolicies = userInfo.PasswordPolicies.ToString()
             };
 
-            await _graphClient.Users[userId]
+            await graphClient.Users[userId]
                 .Request()
                 .UpdateAsync(user);
         }
@@ -108,7 +93,7 @@ namespace Azure
         public async Task<List<string>> GetUserIds()
         {
             List<string> userIds = new List<string>();
-            IGraphServiceUsersCollectionPage users = await _graphClient.Users
+            IGraphServiceUsersCollectionPage users = await graphClient.Users
                 .Request()
                 .GetAsync();
 
@@ -126,19 +111,17 @@ namespace Azure
         public async Task<List<string>> GetUserIds1()
         {
             List<string> userIds = new List<string>();
-            IGraphServiceUsersCollectionPage users = await _graphClient.Users
+            IGraphServiceUsersCollectionPage users = await graphClient.Users
                 .Request()
                 .GetAsync();
 
             userIds.AddRange(users.Select(c => c.Id).ToList());
 
-            //var result = String.Join(", ", userIds.ToArray());
-
-            //while (users.NextPageRequest != null)
-            //{
-            //    users = await users.NextPageRequest.GetAsync();
-            //    userIds.AddRange(users.Select(c => c.Id).ToList());
-            //}
+            while (users.NextPageRequest != null)
+            {
+                users = await users.NextPageRequest.GetAsync();
+                userIds.AddRange(users.Select(c => c.Id).ToList());
+            }
 
             return userIds;
         }
@@ -162,11 +145,10 @@ namespace Azure
                 Skills = userAdditionalInfo.Skills
             };
         }
-
-
+        
         public void GetUserInfo2(string userId)
         {
-            GetUserAdditionalInfoAsync1(userId);
+            graphClient.Users[userId].Request().GetAsync();
         }
 
         public async Task<UserInfo> GetUserInfo1(string userId)
@@ -197,28 +179,17 @@ namespace Azure
 
             foreach (UserInfo userInfo in userInfos)
             {
-                //User user = new User
-                //{
-                //    AboutMe = userInfo.AboutMe,
-                //    Birthday = userInfo.Birthday,
-                //    HireDate = userInfo.HireDate,
-                //    Interests = userInfo.Interests,
-                //    MySite = userInfo.MySite,
-                //    PastProjects = userInfo.PastProjects,
-                //    Responsibilities = userInfo.Responsibilities,
-                //    Schools = userInfo.Schools,
-                //    Skills = userInfo.Skills
-                //};
-
                 User user = new User
                 {
-                    BusinessPhones = new List<string> { "(057)937-99-92" },
+                    BusinessPhones = new List<string> {"(057)937-99-92"},
                     GivenName = "PVP",
                 };
 
-                HttpContent jsonUser = _graphClient.HttpProvider.Serializer.SerializeAsJsonContent(user);
-                
-                HttpRequestMessage request = _graphClient.Users[userInfo.Id].Request().GetHttpRequestMessage();
+                HttpContent jsonUser =
+                    graphClient.HttpProvider.Serializer.SerializeAsJsonContent(user);
+
+                HttpRequestMessage request =
+                    graphClient.Users[userInfo.Id].Request().GetHttpRequestMessage();
                 request.Method = HttpMethod.Patch;
                 request.Content = jsonUser;
                 request.Headers.Add("x-ms-throttle-priority", "Normal");
@@ -227,18 +198,19 @@ namespace Azure
 
                 requestIds.Add(requestId);
             }
-            
-            BatchResponseContent returnedResponse = await _graphClient.Batch.Request().PostAsync(batchRequestContent);
+
+            BatchResponseContent returnedResponse =
+                await graphClient.Batch.Request().PostAsync(batchRequestContent);
 
             try
             {
                 foreach (string requestId in requestIds)
                 {
-                    HttpResponseMessage response = await returnedResponse.GetResponseByIdAsync(requestId);
+                    HttpResponseMessage response =
+                        await returnedResponse.GetResponseByIdAsync(requestId);
 
                     if (!response.IsSuccessStatusCode)
                     {
-
                     }
                 }
             }
@@ -246,8 +218,10 @@ namespace Azure
             {
                 if (ex.Message.Contains(" 429 "))
                 {
-                    throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                    throw new HttpRequestException(ex.Message, ex.InnerException,
+                        HttpStatusCode.TooManyRequests);
                 }
+
                 //Console.WriteLine($"UserId: {requestId.UserId}");
                 Console.WriteLine($"Get user failed: {ex.Error.Message}");
             }
@@ -260,51 +234,57 @@ namespace Azure
         public async Task CreateUserAsync(List<UserCreate> userCreates)
         {
             List<string> requestIds = new List<string>();
-            
+
             BatchRequestContent batchRequestContent = new BatchRequestContent();
 
             foreach (UserCreate userCreate in userCreates)
             {
-                PasswordProfile passwordProfile = new PasswordProfile()
+                User user = new User()
                 {
-                    Password = userCreate.Password,
-                    ForceChangePasswordNextSignIn = userCreate.ForceChangePasswordNextSignIn ?? true
+                    DisplayName = userCreate.DisplayName,
+                    MailNickname = userCreate.MailNickname,
+                    UserPrincipalName = userCreate.UserPrincipalName,
+                    AccountEnabled = userCreate.AccountEnabled,
+                    PasswordProfile = new PasswordProfile()
+                    {
+                        Password = userCreate.Password,
+                        ForceChangePasswordNextSignIn =
+                            userCreate.ForceChangePasswordNextSignIn ?? true
+                    }
                 };
 
+                HttpContent jsonPasswordProfile =
+                    graphClient.HttpProvider.Serializer.SerializeAsJsonContent(user);
 
-                string jsonPasswordProfile = JsonSerializer.Serialize(passwordProfile);
+                HttpRequestMessage request = graphClient.Users.Request().GetHttpRequestMessage();
 
-                List<QueryOption> queryOptions = new List<QueryOption>
-                {
-                    new QueryOption("displayName", userCreate.DisplayName),
-                    new QueryOption("mailNickname", userCreate.MailNickname),
-                    new QueryOption("userPrincipalName", userCreate.UserPrincipalName),
-                    new QueryOption("accountEnabled", userCreate.AccountEnabled.ToString()),
-                    new QueryOption("passwordProfile", jsonPasswordProfile),
-                };
-
-                IGraphServiceUsersCollectionRequest request = _graphClient.Users.Request(queryOptions);
+                request.Content = jsonPasswordProfile;
+                request.Method = HttpMethod.Post;
 
                 string requestId = batchRequestContent.AddBatchRequestStep(request);
 
                 requestIds.Add(requestId);
             }
 
-            BatchResponseContent returnedResponse = await _graphClient.Batch.Request().PostAsync(batchRequestContent);
+            BatchResponseContent returnedResponse =
+                await graphClient.Batch.Request().PostAsync(batchRequestContent);
 
             try
             {
                 foreach (string requestId in requestIds)
                 {
-                    HttpResponseMessage response = await returnedResponse.GetResponseByIdAsync(requestId);
+                    HttpResponseMessage response =
+                        await returnedResponse.GetResponseByIdAsync(requestId);
                 }
             }
             catch (ServiceException ex)
             {
                 if (ex.Message.Contains(" 429 "))
                 {
-                    throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                    throw new HttpRequestException(ex.Message, ex.InnerException,
+                        HttpStatusCode.TooManyRequests);
                 }
+
                 //Console.WriteLine($"UserId: {requestId.UserId}");
                 Console.WriteLine($"Get user failed: {ex.Error.Message}");
             }
@@ -314,24 +294,23 @@ namespace Azure
             }
         }
 
-
         public async Task<List<UserInfo>> GetUsersInfoAsync2(List<string> userIds)
         {
             List<string> requestIds = new List<string>();
             List<UserInfo> userInfos = new List<UserInfo>();
 
             BatchRequestContent batchRequestContent = new BatchRequestContent();
-            
+
             foreach (string id in userIds)
             {
-                HttpRequestMessage request = _graphClient.Users[id].Request()
+                HttpRequestMessage request = graphClient.Users[id].Request()
                     //.Select("id, givenName, businessPhones").GetHttpRequestMessage();
                     //.Select(
                     //    "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills, id")
                     .Expand("manager")
                     .GetHttpRequestMessage();
 
-                request.Headers.Add("x-ms-throttle-priority", "Normal"); 
+                request.Headers.Add("x-ms-throttle-priority", "Normal");
                 request.Method = HttpMethod.Get;
 
                 string requestId = batchRequestContent.AddBatchRequestStep(request);
@@ -339,8 +318,9 @@ namespace Azure
                 requestIds.Add(requestId);
             }
 
-            BatchResponseContent returnedResponse = await _graphClient.Batch.Request().PostAsync(batchRequestContent);
-            
+            BatchResponseContent returnedResponse =
+                await graphClient.Batch.Request().PostAsync(batchRequestContent);
+
             foreach (string requestId in requestIds)
             {
                 try
@@ -371,8 +351,10 @@ namespace Azure
                 {
                     if (ex.Message.Contains(" 429 "))
                     {
-                        throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                        throw new HttpRequestException(ex.Message, ex.InnerException,
+                            HttpStatusCode.TooManyRequests);
                     }
+
                     //Console.WriteLine($"UserId: {requestId.UserId}");
                     Console.WriteLine($"Get user failed: {ex.Error.Message}");
                 }
@@ -380,7 +362,6 @@ namespace Azure
 
             return userInfos;
         }
-
 
         public async Task<List<UserInfoAndPhotoHash>> GetUsersInfoAsync3(List<string> userIds)
         {
@@ -391,13 +372,13 @@ namespace Azure
 
             foreach (string id in userIds)
             {
-                IUserRequest userInfoRequest = _graphClient.Users[id].Request()
+                IUserRequest userInfoRequest = graphClient.Users[id].Request()
                     .Select(
                         "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills, id");
 
                 string userInfoRequstId = batchRequestContent.AddBatchRequestStep(userInfoRequest);
 
-                IProfilePhotoRequest hashRequest = _graphClient.Users[id].Photo.Request();
+                IProfilePhotoRequest hashRequest = graphClient.Users[id].Photo.Request();
 
                 string hashRequestId = batchRequestContent.AddBatchRequestStep(hashRequest);
 
@@ -409,8 +390,9 @@ namespace Azure
                 });
             }
 
-            BatchResponseContent returnedResponse = await _graphClient.Batch.Request().PostAsync(batchRequestContent);
-            
+            BatchResponseContent returnedResponse =
+                await graphClient.Batch.Request().PostAsync(batchRequestContent);
+
             foreach (UserIdAndRequestIds requestId in requestIds)
             {
                 UserInfoAndPhotoHash infoAndPhotoHash = new UserInfoAndPhotoHash();
@@ -441,8 +423,10 @@ namespace Azure
                 {
                     if (ex.Message.Contains(" 429 "))
                     {
-                        throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                        throw new HttpRequestException(ex.Message, ex.InnerException,
+                            HttpStatusCode.TooManyRequests);
                     }
+
                     Console.WriteLine($"UserId: {requestId.UserId}");
                     Console.WriteLine($"Get user failed: {ex.Error.Message}");
                 }
@@ -454,7 +438,8 @@ namespace Azure
 
 
                     /// По @odata.mediaEtag получаем хеш тип которого JsonElement
-                    JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
+                    JsonElement? value =
+                        profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
 
                     infoAndPhotoHash.PhotoHash = value.ToString();
                 }
@@ -462,8 +447,10 @@ namespace Azure
                 {
                     if (ex.Message.Contains(" 429 "))
                     {
-                        throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                        throw new HttpRequestException(ex.Message, ex.InnerException,
+                            HttpStatusCode.TooManyRequests);
                     }
+
                     if (!ex.Message.Contains("ImageNotFound"))
                     {
                         Console.WriteLine($"UserId: {requestId.UserId}");
@@ -475,7 +462,6 @@ namespace Azure
             return userInfoAndPhotoHashs;
         }
 
-
         public async Task<List<UserInfoAndPhotoHash>> GetUsersInfoAsync4(List<string> userIds)
         {
             List<UserInfoAndPhotoHash> userInfoAndPhotoHash = new List<UserInfoAndPhotoHash>();
@@ -486,7 +472,7 @@ namespace Azure
 
             foreach (string id in userIds)
             {
-                IUserRequest userInfoRequest = _graphClient.Users[id].Request()
+                IUserRequest userInfoRequest = graphClient.Users[id].Request()
                     .Select(
                         "aboutMe, birthday, hireDate, interests, mySite, pastProjects, preferredName, responsibilities, schools, skills, id");
 
@@ -497,14 +483,15 @@ namespace Azure
 
             foreach (string id in userIds)
             {
-                IProfilePhotoRequest hashRequest = _graphClient.Users[id].Photo.Request();
+                IProfilePhotoRequest hashRequest = graphClient.Users[id].Photo.Request();
 
                 string hashRequestId = batchRequestContent.AddBatchRequestStep(hashRequest);
                 userIdByHashRequestIds.Add(id, hashRequestId);
             }
 
-            BatchResponseContent returnedResponse = await _graphClient.Batch.Request().PostAsync(batchRequestContent);
-            
+            BatchResponseContent returnedResponse =
+                await graphClient.Batch.Request().PostAsync(batchRequestContent);
+
             foreach (string requestId in userInfoRequestIds)
             {
                 UserInfoAndPhotoHash infoAndPhotoHash = new UserInfoAndPhotoHash();
@@ -535,27 +522,31 @@ namespace Azure
                 {
                     if (ex.Message.Contains(" 429 "))
                     {
-                        throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                        throw new HttpRequestException(ex.Message, ex.InnerException,
+                            HttpStatusCode.TooManyRequests);
                     }
+
                     Console.WriteLine($"Get user failed: {ex.Error.Message}");
                 }
+
                 userInfoAndPhotoHash.Add(infoAndPhotoHash);
             }
 
             foreach (KeyValuePair<string, string> userIdByHashRequestId in userIdByHashRequestIds)
             {
-
                 try
                 {
                     ProfilePhoto profilePhoto = await returnedResponse
                         .GetResponseByIdAsync<ProfilePhoto>(userIdByHashRequestId.Value);
-                    
+
                     /// По @odata.mediaEtag получаем хеш тип которого JsonElement
-                    JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
-                    
+                    JsonElement? value =
+                        profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
+
                     string photoHash = value.ToString();
 
-                    UserInfoAndPhotoHash item = userInfoAndPhotoHash.FirstOrDefault(c => c.UserInfo.Id.Equals(userIdByHashRequestId.Key));
+                    UserInfoAndPhotoHash item = userInfoAndPhotoHash.FirstOrDefault(c =>
+                        c.UserInfo.Id.Equals(userIdByHashRequestId.Key));
 
                     if (item != null)
                     {
@@ -577,8 +568,10 @@ namespace Azure
                 {
                     if (ex.Message.Contains(" 429 "))
                     {
-                        throw new HttpRequestException(ex.Message, ex.InnerException, HttpStatusCode.TooManyRequests);
+                        throw new HttpRequestException(ex.Message, ex.InnerException,
+                            HttpStatusCode.TooManyRequests);
                     }
+
                     if (!ex.Message.Contains("ImageNotFound"))
                     {
                         Console.WriteLine($"Get photo hash failed: {ex.Error.Message}");
@@ -588,24 +581,27 @@ namespace Azure
 
             return userInfoAndPhotoHash;
         }
-        
-        public async Task<List<KeyValuePair<string, string>>> GetUsersPhotoHashAsync(List<string> userIds)
+
+        public async Task<List<KeyValuePair<string, string>>> GetUsersPhotoHashAsync(
+            List<string> userIds)
         {
-            Dictionary<string,string> userIdByRequestIds = new Dictionary<string, string>();
-            List<KeyValuePair<string, string>> hashDictionarys = new List<KeyValuePair<string, string>>();
+            Dictionary<string, string> userIdByRequestIds = new Dictionary<string, string>();
+            List<KeyValuePair<string, string>> hashDictionarys =
+                new List<KeyValuePair<string, string>>();
 
             BatchRequestContent batchRequestContent = new BatchRequestContent();
 
             foreach (string id in userIds)
             {
-                IProfilePhotoRequest request = _graphClient.Users[id].Photo.Request();
+                IProfilePhotoRequest request = graphClient.Users[id].Photo.Request();
 
                 string requestId = batchRequestContent.AddBatchRequestStep(request);
 
                 userIdByRequestIds.Add(id, requestId);
             }
 
-            BatchResponseContent returnedResponse = await _graphClient.Batch.Request().PostAsync(batchRequestContent);
+            BatchResponseContent returnedResponse =
+                await graphClient.Batch.Request().PostAsync(batchRequestContent);
 
             foreach (KeyValuePair<string, string> userIdByRequest in userIdByRequestIds)
             {
@@ -613,19 +609,23 @@ namespace Azure
                 {
                     ProfilePhoto profilePhoto = await returnedResponse
                         .GetResponseByIdAsync<ProfilePhoto>(userIdByRequest.Value);
-                    
-                    /// По @odata.mediaEtag получаем хеш тип которого JsonElement
-                    JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
 
-                    hashDictionarys.Add(new KeyValuePair<string, string>(userIdByRequest.Key, value.ToString()));
+                    /// По @odata.mediaEtag получаем хеш тип которого JsonElement
+                    JsonElement? value =
+                        profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
+
+                    hashDictionarys.Add(
+                        new KeyValuePair<string, string>(userIdByRequest.Key, value.ToString()));
                 }
                 catch (ServiceException e)
                 {
-                    if (!e.Message.Contains("ImageNotFound"))
+                    if (!e.Message.Contains("ImageNotFound") && !e.Message.Contains("AadGraphCallFailed"))
                     {
                         Console.WriteLine($"Get user failed: {e.Error.Message}");
                     }
-                    hashDictionarys.Add(new KeyValuePair<string, string>(userIdByRequest.Key, e.Error.Message));
+
+                    hashDictionarys.Add(
+                        new KeyValuePair<string, string>(userIdByRequest.Key, e.Error.Message));
                 }
             }
 
@@ -634,7 +634,7 @@ namespace Azure
 
         public async Task<string> ResetUserPasswordAsync(string userId)
         {
-            string password = _passwordGenerator.GeneratePassword(); 
+            string password = passwordGenerator.GeneratePassword();
 
             User user = new User
             {
@@ -645,23 +645,23 @@ namespace Azure
                 }
             };
 
-            await _graphClient.Users[userId]
+            await graphClient.Users[userId]
                 .Request()
                 .UpdateAsync(user);
 
             return password;
         }
-        
+
         public async Task DeleteUserAsync(string userId)
         {
-            await _graphClient.Users[userId]
+            await graphClient.Users[userId]
                 .Request()
                 .DeleteAsync();
         }
 
         public async Task RestoreUserAsync(string userId)
         {
-            await _graphClient.Directory.DeletedItems[userId]
+            await graphClient.Directory.DeletedItems[userId]
                 .Restore()
                 .Request()
                 .PostAsync();
@@ -678,7 +678,7 @@ namespace Azure
                 GroupTypes = groupCreate.GroupTypes
             };
 
-            Group group = await _graphClient.Groups
+            Group group = await graphClient.Groups
                 .Request()
                 .AddAsync(newGroup);
             return group.Id;
@@ -690,15 +690,15 @@ namespace Azure
             {
                 Id = userId
             };
-            
-            await _graphClient.Groups[groupId].Members.References
+
+            await graphClient.Groups[groupId].Members.References
                 .Request()
                 .AddAsync(user);
         }
 
         public async Task RemoveMemberFromGroupAsync(string groupId, string userId)
         {
-            await _graphClient.Groups[groupId].Members[userId].Reference
+            await graphClient.Groups[groupId].Members[userId].Reference
                 .Request()
                 .DeleteAsync();
         }
@@ -707,34 +707,34 @@ namespace Azure
         {
             /// Получение информации о фото
 
-            ProfilePhoto profilePhoto = await _graphClient.Users[userId].Photo
+            ProfilePhoto profilePhoto = await graphClient.Users[userId].Photo
                 .Request()
                 .GetAsync();
 
             /// По @odata.mediaEtag получаем хеш тип которого JsonElement
-            JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?; 
+            JsonElement? value = profilePhoto.AdditionalData["@odata.mediaEtag"] as JsonElement?;
 
             return value?.ToString();
         }
-        
+
         public async Task<byte[]> GetUserPhotoAsync(string userId)
         {
-            Stream stream = await _graphClient.Users[userId].Photo.Content
+            Stream stream = await graphClient.Users[userId].Photo.Content
                 .Request()
                 .GetAsync();
 
             /// MemoryStream было использовано для получения byte[]
             await using MemoryStream memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
-            return memoryStream.ToArray(); 
+            return memoryStream.ToArray();
         }
 
         public async Task UpdateUserPhotoAsync(string userId, byte[] imageBytes)
         {
             /// Приведение массива байтов к Stream
-            await using MemoryStream stream = new MemoryStream(imageBytes); 
+            await using MemoryStream stream = new MemoryStream(imageBytes);
 
-            await _graphClient.Users[userId].Photo.Content
+            await graphClient.Users[userId].Photo.Content
                 .Request()
                 .PutAsync(stream);
         }
@@ -746,7 +746,7 @@ namespace Azure
             const string clientSecret = "f2i7Q~JLJlWDGmfUcEnjpEbGlg3~OaTSEvkBa";
 
             /// "/.default" подтягивает perissions приложения
-            string[] scopes = { "https://graph.microsoft.com/.default" };
+            string[] scopes = {"https://graph.microsoft.com/.default"};
 
             TokenCredentialOptions options = new TokenCredentialOptions
             {
@@ -758,8 +758,8 @@ namespace Azure
 
             TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
                 clientSecretCredential, scopes);
-            
-            List<DelegatingHandler> handlers = new List<DelegatingHandler> 
+
+            List<DelegatingHandler> handlers = new List<DelegatingHandler>
             {
                 new Handlers.ResponseHandler(),
                 new AuthenticationHandler(authProvider),
@@ -767,7 +767,7 @@ namespace Azure
                 //new RetryHandler(),
                 new RedirectHandler(),
             };
-            
+
             HttpClient httpClient = GraphClientFactory.Create(handlers);
 
             return new GraphServiceClient(httpClient);
@@ -780,7 +780,7 @@ namespace Azure
             const string clientSecret = "f2i7Q~JLJlWDGmfUcEnjpEbGlg3~OaTSEvkBa";
 
             /// "/.default" подтягивает perissions приложения
-            string[] scopes = { "https://graph.microsoft.com/.default" };
+            string[] scopes = {"https://graph.microsoft.com/.default"};
 
             TokenCredentialOptions options = new TokenCredentialOptions
             {
@@ -793,12 +793,13 @@ namespace Azure
             TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
                 clientSecretCredential, scopes);
 
-            IList<DelegatingHandler> handlers = GraphClientFactory.CreateDefaultHandlers(authProvider);
+            IList<DelegatingHandler> handlers =
+                GraphClientFactory.CreateDefaultHandlers(authProvider);
 
             DelegatingHandler compressionHandler =
                 handlers.Where(h => h is RetryHandler).FirstOrDefault();
             handlers.Remove(compressionHandler);
-            
+
             HttpClient httpClient = GraphClientFactory.Create(handlers);
 
             return new GraphServiceClient(httpClient);
@@ -807,19 +808,19 @@ namespace Azure
         /// Возвращает SharePoint Online свойства 
         private async Task<User> GetUserAdditionalInfoAsync(string userId)
         {
-            return await _graphClient.Users[userId].Request()
+            return await graphClient.Users[userId].Request()
                 .GetAsync();
         }
 
         private void GetUserAdditionalInfoAsync1(string userId)
         {
-            _graphClient.Users[userId].Request()
+            graphClient.Users[userId].Request()
                 .GetAsync();
         }
 
         private async Task<PasswordPolicies> GetUserPasswordPoliciesAsync(string userId)
         {
-            User user = await _graphClient.Users[userId]
+            User user = await graphClient.Users[userId]
                 .Request()
                 .Select("passwordPolicies")
                 .GetAsync();
@@ -836,14 +837,14 @@ namespace Azure
 
             return PasswordPolicies.NaN;
         }
-        
+
         private async Task SetAccountEnabledAsync(string userId, bool accountEnabled)
         {
             User user = new User
             {
                 AccountEnabled = accountEnabled
             };
-            await _graphClient.Users[userId]
+            await graphClient.Users[userId]
                 .Request()
                 .UpdateAsync(user);
         }
@@ -865,7 +866,7 @@ namespace Azure
                 Skills = userInfo.Skills
             };
 
-            await _graphClient.Users[userId]
+            await graphClient.Users[userId]
                 .Request()
                 .UpdateAsync(user);
         }
