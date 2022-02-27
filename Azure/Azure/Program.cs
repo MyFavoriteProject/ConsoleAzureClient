@@ -16,13 +16,19 @@ namespace Azure
         
         static void Main(string[] args)
         {
-            azureClient = new AzureClient();
+            azureClient = new AzureClient(); 
+            AzureClient2 azureClient2 = new AzureClient2();
             int takeUsers = 20;
+
+
+
+            #region OldRealese
+
             //CreateALotOfUsers().GetAwaiter().GetResult();
             //UpdateAllUsers().GetAwaiter().GetResult();
             //GetUsersInfo().GetAwaiter().GetResult();
             //GetUsersInfo1().GetAwaiter().GetResult();
-            
+
             //List<string> userIds = azureClient.GetUserIds().GetAwaiter().GetResult();
 
             //Stopwatch sp = new Stopwatch();
@@ -32,7 +38,7 @@ namespace Azure
 
             //Console.WriteLine("Get hash start");
             //var hashs = PerformanceComparison(userIds, takeUsers).GetAwaiter().GetResult();
-            
+
             //Console.WriteLine("Get user info start");
             //List<UserInfo> userInfos = PerformanceComparison1(userIds, takeUsers).GetAwaiter().GetResult();
             //Console.WriteLine("Get user info count: " + userInfos.Count);
@@ -42,6 +48,8 @@ namespace Azure
             //PerformanceComparison3(userIds).GetAwaiter().GetResult();
 
             //Console.WriteLine("Total get info time: " + sp.Elapsed);
+
+            #endregion
 
             Console.ReadKey();
         }
