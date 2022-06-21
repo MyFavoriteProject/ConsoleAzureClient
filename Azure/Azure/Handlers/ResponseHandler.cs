@@ -45,13 +45,13 @@ namespace Azure.Handlers
 
                 string responseContent = await response.Content.ReadAsStringAsync();
 
+                StringBuilder stringBuilder = new StringBuilder();
+
+                stringBuilder.AppendLine("Response Header: ");
+                stringBuilder.AppendLine(response.Headers.ToString());
+
                 if (!string.IsNullOrEmpty(responseContent))
                 {
-                    StringBuilder stringBuilder = new StringBuilder();
-
-                    stringBuilder.AppendLine("Response Header: ");
-                    stringBuilder.AppendLine(response.Headers.ToString());
-
                     stringBuilder.AppendLine();
                     stringBuilder.AppendLine("Response Content: ");
                     stringBuilder.AppendLine(responseContent);
@@ -63,7 +63,11 @@ namespace Azure.Handlers
                 if (responseContent.Contains("throttle") || responseContent.Contains("limit"))
                 {
                     Console.WriteLine("throttle or limit header found");
-                    Console.ReadKey();
+
+                    if (!string.IsNullOrEmpty(responseContent))
+                    {
+                        Console.WriteLine(responseContent);
+                    }
                 }
                 
             }

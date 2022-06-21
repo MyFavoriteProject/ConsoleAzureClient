@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Azure.Models;
+using Microsoft.Graph;
 using File = System.IO.File;
 
 namespace Azure
@@ -13,26 +14,77 @@ namespace Azure
     class Program
     {
         private static AzureClient azureClient;
-        
+        //private static readonly List<string> usersId = new List<string>
+        //{
+        //    "afceaf0b-05a5-48df-8a8d-265643a63896",
+        //    "afceaf0b-05a5-48df-8a8d-265643a63896",
+        //    "8a98aaff-a016-4a1c-b35e-11221bf25bed",
+        //    "ed6280f0-385c-4e80-963c-a726898c121d",
+        //    "e00dbdd2-c807-4fd0-ab3a-bd6ccfa4d7c1",
+        //    "4fe8903e-a4e3-44e7-b427-7cfeaa1c5443",
+        //    "72062c8a-9033-4d63-a78e-63e0aef5220c",
+        //    "222da428-e04f-4f0d-89e1-96005ef34d7a",
+        //    "698fa2a6-596d-4a5c-b5be-a0d6228a3295",
+        //    "698fa2a6-596d-4a5c-b5be-a0d6228a3295",
+        //};
+
+        private const string RootPath = @"C:\Users\d.bondarenko\Pictures\";
+
+        private static List<string> pathes = new List<string>()
+        {
+            RootPath + "SouthPark.jpg",
+            RootPath + "photo_2022-03-21_15-10-05.jpg",
+            RootPath + "4k.jpg",
+            RootPath + "8к.jpg",
+        };
+
+        //private static List<string> userIdsForUpdatePhoto = new List<string>
+        //{
+        //    "92a4b84b-dbd3-427a-a333-a1fb75cacd45",
+        //    "56f5423e-3eee-4dbf-a286-baf96e795e8a",
+        //    "055c4599-9a4a-4678-b64f-0d5d9841d8a2",
+        //    "698fa2a6-596d-4a5c-b5be-a0d6228a3295"
+        //};
+
         static void Main(string[] args)
         {
+            #region Azure
+
             azureClient = new AzureClient();
-            int takeUsers = 20;
-            //CreateALotOfUsers().GetAwaiter().GetResult();
+            //int takeUsers = 20;
             //UpdateAllUsers().GetAwaiter().GetResult();
             //GetUsersInfo().GetAwaiter().GetResult();
             //GetUsersInfo1().GetAwaiter().GetResult();
-            
+
+            //ResetPassword("3daf8cdd-985a-47c7-8468-962a4680379c");
+
             //List<string> userIds = azureClient.GetUserIds().GetAwaiter().GetResult();
 
+            //CreateALotOfUsers().GetAwaiter().GetResult();
+            //azureClient.CreateALOtOfGroups().GetAwaiter().GetResult();
+
+            List<string> groupIds = azureClient.GetGroupIds().GetAwaiter().GetResult();
+            //azureClient.UpdateGroupExternalResourses(groupIds).GetAwaiter().GetResult();
+            //azureClient.UpdateGroupExternalResourses(new List<string> { "fb30a0b3-1d03-4a14-89c2-30cec68e9398" }).GetAwaiter().GetResult();
+
+            var groups = azureClient.GetExternalResourse(groupIds).GetAwaiter().GetResult();
+            //var groups = azureClient.GetExternalResourse1(groupIds).GetAwaiter().GetResult();
+            //var groups = azureClient.GetExternalResourse2("95038ebf-f5bb-4cdb-b32d-aabacfceea03").GetAwaiter().GetResult();
+
+            //azureClient.DeleteUsers().GetAwaiter().GetResult();
+            //azureClient.DeleteGroups().GetAwaiter().GetResult();
+            //azureClient.CreateALOtOfGroups().GetAwaiter().GetResult();
+
+            //azureClient.GetUsers(userIds).GetAwaiter().GetResult();
             //Stopwatch sp = new Stopwatch();
             //sp.Start();
 
             //UpdateAllUsers(userIds).GetAwaiter().GetResult();
+            //UpdateUsers(userIds).GetAwaiter().GetResult();
 
             //Console.WriteLine("Get hash start");
             //var hashs = PerformanceComparison(userIds, takeUsers).GetAwaiter().GetResult();
-            
+
             //Console.WriteLine("Get user info start");
             //List<UserInfo> userInfos = PerformanceComparison1(userIds, takeUsers).GetAwaiter().GetResult();
             //Console.WriteLine("Get user info count: " + userInfos.Count);
@@ -42,6 +94,254 @@ namespace Azure
             //PerformanceComparison3(userIds).GetAwaiter().GetResult();
 
             //Console.WriteLine("Total get info time: " + sp.Elapsed);
+
+            //for (int i = 0; i < usersId.Count; i++)
+            //{
+            //    try
+            //    {
+            //        byte[] imageBytes = azureClient.GetUserPhotoAsync(usersId[i]).GetAwaiter()
+            //            .GetResult();
+            //        string photoHash = azureClient.GetPhotoHashAsync(usersId[i]).GetAwaiter()
+            //            .GetResult();
+
+            //        /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
+            //        File.WriteAllBytes(
+            //            @$"C:\Users\d.bondarenko\Desktop\TestPhoto\ImageFromAzureAD{i}.JPG",
+            //            imageBytes);
+            //    }
+            //    catch (Exception ex)
+            //    {
+
+            //    }
+            //}
+
+
+            //string userId = "1b101bb4-e143-437b-8a46-fda10b230f3f";
+
+            #region 
+
+            //foreach(var userId in userIds)
+            //{
+            //    try
+            //    {
+            //        byte[] imageBytes = azureClient.GetUserPhotoAsync(userId).GetAwaiter()
+            //            .GetResult();
+
+            //        string photoHash = azureClient.GetPhotoHashAsync(userId).GetAwaiter()
+            //            .GetResult();
+
+            //        /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
+            //        File.WriteAllBytes(
+            //            @$"C:\Users\d.bondarenko\Desktop\TestPhoto\ImageFromAzureAD000.JPG",
+            //            imageBytes);
+            //    }
+            //    catch (Exception ex)
+            //    {
+
+            //    }
+            //}
+
+            #endregion
+
+            #region one Photo many Sizes
+
+            //try
+            //{
+            //    var photosHashs = azureClient.GetPhotoHashAsync1(userId).GetAwaiter()
+            //        .GetResult();
+
+            //    List<string> sizes = photosHashs.Select(c => c.Key).ToList();
+
+            //    Dictionary<string, byte[]> imagesBytes = azureClient.GetUserPhotoAsync1(userId, sizes).GetAwaiter()
+            //            .GetResult();
+
+            //    foreach (KeyValuePair<string, byte[]> imageBytes in imagesBytes)
+            //    {
+            //        File.WriteAllBytes(
+            //            @$"C:\Users\d.bondarenko\Desktop\TestPhoto\6ImageFromOutlook{imageBytes.Key}.JPG",
+            //            imageBytes.Value);
+            //    }
+
+
+            //    /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
+            //    //File.WriteAllBytes(
+            //    //    @$"C:\Users\d.bondarenko\Desktop\TestPhoto\ImageFromOutlook.JPG",
+            //    //    imageBytes);
+            //}
+            //catch (Exception ex)
+            //{
+
+            //}
+
+            #endregion
+
+            #region many photo many sizes
+
+            //for (int i = 0; i < userIds.Count; i++)
+            //{
+            //    try
+            //    {
+            //        var photosHashs = azureClient.GetPhotoHashAsync1(userIds[i]).GetAwaiter()
+            //            .GetResult();
+
+            //        List<string> sizes = photosHashs.Select(c => c.Key).ToList();
+
+            //        Dictionary<string, byte[]> imagesBytes = azureClient.GetUserPhotoAsync1(userIds[i], sizes).GetAwaiter()
+            //                .GetResult();
+
+            //        foreach (KeyValuePair<string, byte[]> imageBytes in imagesBytes)
+            //        {
+            //            File.WriteAllBytes(
+            //                @$"C:\Users\d.bondarenko\Desktop\TestPhoto\{i}ImageFromOutlook{imageBytes.Key}.JPG",
+            //                imageBytes.Value);
+            //        }
+
+
+            //        /// Вызов этой функции нужен для того чтобы проверить что полученное изображение соответствует тому что находится на странице пользователя
+            //        //File.WriteAllBytes(
+            //        //    @$"C:\Users\d.bondarenko\Desktop\TestPhoto\ImageFromOutlook.JPG",
+            //        //    imageBytes);
+            //    }
+            //    catch (Exception ex)
+            //    {
+
+            //    }
+            //}
+
+            #endregion
+
+            #region Batch many size to many photo
+
+            //List<string> ids = new List<string>();
+
+            //foreach (string id in userIds)
+            //{
+            //    ids.Add(id);
+
+            //    if (ids.Count == 20)
+            //    {
+            //        try
+            //        {
+            //            //azureClient.GetUsersPhotoHashAsync(ids).GetAwaiter()
+            //            //    .GetResult();
+            //            azureClient.GetPhotoHashAsync2(ids).GetAwaiter()
+            //                .GetResult();
+            //        }
+            //        catch (Exception ex)
+            //        {
+
+            //        }
+            //    }
+            //}
+
+            #endregion
+
+            //string userId = "e72bba5b-e22a-4f95-a6c0-4a32349334a6";
+
+            //foreach (string path in pathes)
+            //{
+            //    try
+            //    {
+            //        byte[] imageBytes = File.ReadAllBytes(path);
+
+            //        try
+            //        {
+            //            azureClient.UpdateUserPhotoAsync(userId, imageBytes).GetAwaiter().GetResult();
+            //        }
+            //        catch (Exception ex)
+            //        {
+
+            //        }
+            //        try
+            //        {
+            //            var photosHashs = azureClient.GetPhotoHashAsync1(userId).GetAwaiter()
+            //                .GetResult();
+            //        }
+            //        catch (Exception ex)
+            //        {
+
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+
+            //    }
+
+            //}
+
+            //List<string> ids = new List<string>();
+
+            //foreach(string userId in userIds)
+            //{
+            //    ids.Add(userId);
+            //    if(ids.Count == 10)
+            //    {
+            //        azureClient.GetPhotoHashAsync2(ids).GetAwaiter().GetResult();
+            //        ids.Clear();
+            //    }
+            //}
+
+            //try
+            //{
+            //    byte[] imageBytes = File.ReadAllBytes(
+            //        "C:\\Users\\d.bondarenko\\Documents\\GitHub\\ConsoleAzureClient\\Azure\\Azure\\Img\\IMG_3614.JPG");
+
+            //    foreach (string userId in userIdsForUpdatePhoto)
+            //    {
+            //        UpdatePhoto1(userId, imageBytes).GetAwaiter().GetResult();
+            //    }
+
+            //}
+            //catch (Exception ex)
+            //{
+
+            //}
+
+            //foreach(string userId in userIdsForUpdatePhoto)
+            //{
+            //    try
+            //    {
+            //        var photosHashs = azureClient.GetPhotoHashAsync1(userId).GetAwaiter()
+            //            .GetResult();
+            //    }
+            //    catch (Exception ex)
+            //    {
+
+            //    }
+            //}
+
+            #endregion
+
+            //List<string> page = new List<string>();
+
+            ////for(int i = 0; i < userIds.Count; i++)
+            //foreach(string userId in userIds)
+            //{
+            //    page.Add(userId);
+            //    if (page.Count == 10)
+            //    {
+            //        azureClient.GetSignInActivity(page).GetAwaiter().GetResult();
+            //        page.Clear();
+            //    }
+            //}
+
+
+            //azureClient.GetSignInActivity1(userIds).GetAwaiter().GetResult();
+
+            //try
+            //{
+            //    azureClient.GetSignInActivity2().GetAwaiter().GetResult();
+            //}
+            //catch(Exception e)
+            //{
+            //    Console.WriteLine(e);
+            //}
+
+            // azureClient.GetGroupInfo("95038ebf-f5bb-4cdb-b32d-aabacfceea03").GetAwaiter().GetResult();
+
+            //string goupId = "b08406b1-836a-403b-bd5e-291228147bc9";
+
+            //azureClient.UpdateGroupExternalResourses(new List<string> { "b08406b1-836a-403b-bd5e-291228147bc9"}).GetAwaiter().GetResult();
 
             Console.ReadKey();
         }
@@ -314,7 +614,7 @@ namespace Azure
             List<int> errorsIndexs = new List<int>();
 
             List<UserCreate> userCreates = new List<UserCreate>();
-            for (int i = 33336; i < 50_000; i++) // 6928
+            for (int i = 0; i < 1_000; i++) // 6928
             {
                 try
                 {
@@ -334,8 +634,6 @@ namespace Azure
                         ForceChangePasswordNextSignIn = true,
                         Password = "xWwvJ]6NMw+bWH-d"
                     };
-
-                    //await azureClient.CreateUserAsync(userCreate);
 
                     userCreates.Add(userCreate);
 
@@ -366,6 +664,7 @@ namespace Azure
             }
         }
 
+
         private static async Task UpdateAllUsers()
         {
             try
@@ -383,6 +682,22 @@ namespace Azure
             catch (Exception e)
             {
                 Console.WriteLine(e);
+            }
+        }
+
+        private static async Task UpdateUsers(List<string> userIds)
+        {
+            //foreach(string userId in userIds)
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            for(int i = 0; i < userIds.Count; i++)
+            {
+                if (i % 100 == 0)
+                {
+                    Console.WriteLine($"Index: {i}");
+                    Console.WriteLine(stopwatch.Elapsed);
+                }
+                UpdateUser(userIds[i]);
             }
         }
 
@@ -404,9 +719,11 @@ namespace Azure
                     Id = userIds[i],
                     AboutMe = "Im Dev",
                     Birthday = DateTimeOffset.Now.AddYears(-20),
-                    MySite = "123",
                     PreferredName = "JSG",
-                    Skills = new List<string> {"C#", ".Net", "Drink coffee"},
+                    Skills = new List<string> { "C#", ".Net", "Drink coffee" },
+                    Responsibilities = new List<string> { "Coding" },
+                    Schools = new List<string> { "85" },
+                    PastProjects = new List<string> { "Grids", "UWP" },
                 };
 
                 userInfos.Add(userInfo);
@@ -419,6 +736,7 @@ namespace Azure
                     }
                     catch (HttpRequestException e)
                     {
+                        Console.WriteLine(e);
                         if (e.StatusCode == HttpStatusCode.TooManyRequests)
                         {
                         }
@@ -673,30 +991,28 @@ namespace Azure
         /// Обновление только Azure AD свойств 
         static void UpdateUser(string userId)
         {
-            Console.WriteLine();
-
             UserInfo userInfo = new UserInfo
             {
                 Id = userId,
-                BusinessPhones = new List<string> {"937-99-92"},
-                GivenName = "Some One",
-                PasswordPolicies = PasswordPolicies.DisableStrongPassword,
                 AboutMe = "Im Dev",
-                Skills = new List<string> {"C#", ".Net", "Drink coffee"},
-                Birthday = DateTimeOffset.Now.AddYears(-20)
+                Birthday = DateTimeOffset.Now.AddYears(-20),
+                PreferredName = null,
+                Skills = new List<string> { "C#", ".Net", "Drink coffee" },
+                Responsibilities = new List<string> { "Coding" },
+                Schools = new List<string> { "85" },
+                PastProjects = new List<string> { "Grids", "UWP" },
             };
 
             try
             {
                 azureClient.UpdateUserAsync(userInfo).GetAwaiter().GetResult();
-                Console.WriteLine("UpdateUser was success");
+                //Console.WriteLine("UpdateUser was success");
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
 
-            Console.WriteLine();
         }
 
         static UserInfo GetUserInfo(string userId)
